@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# Node.js
+node_modules/
+frontend/dist/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Workspace
+.workbuddy/
+**/.workbuddy/
+
+# Logs
+logs/
+backend/logs/
+frontend/logs/
+*.log
+
+# Build / Deploy artifacts
+dist/
+*.tar.gz
+
+# TypeScript incremental build info
+frontend/tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# 测试脚本 / 临时文件
+backend/test_*.py
+backend/scripts/*.py
+!backend/scripts/__init__.py

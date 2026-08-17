@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>收益率曲线管理与建模分析平台 (CURV) — 页面原型</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; background: #f0f2f5; color: #262626; font-size: 13px; }
+  .app { display: flex; height: 100vh; }
+  /* 侧边导航 */
+  .sidebar { width: 220px; background: #001529; color: #fff; display: flex; flex-direction: column; }
+  .logo { padding: 18px 20px; font-size: 16px; font-weight: 700; border-bottom: 1px solid #002140; display: flex; align-items: center; gap: 8px; }
+  .logo .em { width: 28px; height: 28px; background: linear-gradient(135deg, #722ed1, #1677ff); border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
+  .nav-group { padding: 10px 0 4px 20px; font-size: 11px; color: #6c7383; text-transform: uppercase; letter-spacing: 1px; }
+  .nav-item { padding: 9px 20px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 10px; border-left: 3px solid transparent; transition: all 0.2s; }
+  .nav-item:hover { background: #002140; }
+  .nav-item.active { background: #002140; border-left-color: #722ed1; color: #fff; }
+  .nav-item .ic { width: 16px; text-align: center; }
+  .nav-sub { padding: 6px 20px 6px 50px; font-size: 12px; cursor: pointer; color: #b8c0cc; }
+  .nav-sub:hover { color: #fff; }
+  .nav-sub.active { color: #722ed1; }
+  /* 主体 */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .topbar { height: 56px; background: #fff; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; padding: 0 24px; gap: 16px; }
+  .topbar .crumb { color: #595959; font-size: 13px; }
+  .topbar .crumb b { color: #262626; }
+  .topbar .right { margin-left: auto; display: flex; gap: 14px; align-items: center; font-size: 12px; color: #595959; }
+  .topbar .user { padding: 4px 12px; background: #f0f5ff; color: #1677ff; border-radius: 14px; }
+  /* 内容区 */
+  .content { flex: 1; overflow-y: auto; padding: 20px 24px; background: #f0f2f5; }
+  .page { display: none; }
+  .page.active { display: block; }
+  /* 通用 */
+  .page-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .page-sub { color: #8c8c8c; font-size: 12px; margin-bottom: 16px; }
+  .card { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .card-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .card-title .tag { padding: 1px 8px; background: #f0f5ff; color: #1677ff; font-size: 11px; border-radius: 10px; font-weight: 500; }
+  .row { display: flex; gap: 14px; }
+  .row > .card { flex: 1; }
+  /* KPI 卡片 */
+  .kpi { background: #fff; border-radius: 8px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .kpi .label { font-size: 11px; color: #8c8c8c; margin-bottom: 4px; }
+  .kpi .value { font-size: 22px; font-weight: 700; color: #722ed1; }
+  .kpi .delta { font-size: 11px; margin-top: 4px; }
+  .delta.up { color: #ff4d4f; }
+  .delta.down { color: #52c41a; }
+  /* 表格 */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; padding: 9px 10px; background: #fafafa; font-weight: 600; color: #595959; border-bottom: 1px solid #f0f0f0; }
+  td { padding: 9px 10px; border-bottom: 1px solid #f5f5f5; }
+  tr:hover { background: #fafafa; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 8px; font-size: 11px; }
+  .b-blue { background: #e6f7ff; color: #1677ff; }
+  .b-green { background: #f6ffed; color: #52c41a; }
+  .b-red { background: #fff1f0; color: #ff4d4f; }
+  .b-orange { background: #fff7e6; color: #fa8c16; }
+  .b-purple { background: #f9f0ff; color: #722ed1; }
+  .b-gray { background: #f5f5f5; color: #8c8c8c; }
+  /* 按钮 */
+  .btn { display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; border: 1px solid #d9d9d9; background: #fff; }
+  .btn-primary { background: #722ed1; color: #fff; border-color: #722ed1; }
+  .btn-link { color: #1677ff; border-color: transparent; background: transparent; }
+  /* 表单 */
+  .form-row { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .form-row label { font-size: 12px; color: #595959; min-width: 80px; }
+  .form-row select, .form-row input { padding: 5px 8px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 12px; min-width: 120px; }
+  /* 图表面 */
+  .chart { width: 100%; height: 320px; }
+  .chart-sm { width: 100%; height: 240px; }
+  .chart-lg { width: 100%; height: 400px; }
+  /* 对话 */
+  .chat { display: flex; flex-direction: column; gap: 12px; max-width: 760px; }
+  .chat .msg { padding: 10px 14px; border-radius: 10px; max-width: 85%; line-height: 1.6; }
+  .chat .user { background: #722ed1; color: #fff; align-self: flex-end; }
+  .chat .bot { background: #fff; border: 1px solid #f0f0f0; align-self: flex-start; }
+  .chat .bot .chart-inline { margin-top: 8px; border-radius: 6px; overflow: hidden; }
+  .chat-input { display: flex; gap: 8px; padding: 12px; background: #fff; border-radius: 8px; border: 1px solid #f0f0f0; margin-top: 12px; }
+  .chat-input input { flex: 1; padding: 6px 10px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px; }
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid #f0f0f0; margin-bottom: 14px; }
+  .tab { padding: 8px 14px; cursor: pointer; font-size: 13px; color: #595959; border-bottom: 2px solid transparent; }
+  .tab.active { color: #722ed1; border-bottom-color: #722ed1; font-weight: 600; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  /* 工作台布局 */
+  .workbench { display: grid; grid-template-columns: 280px 1fr; gap: 14px; }
+  .workbench .left { display: flex; flex-direction: column; gap: 14px; }
+  .workbench .right { display: flex; flex-direction: column; gap: 14px; }
+  .param-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .param-row label { font-size: 12px; color: #595959; min-width: 70px; }
+  .param-row input, .param-row select { flex: 1; padding: 4px 8px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 12px; }
+  /* 构建步骤 */
+  .step { background: #fafafa; padding: 10px 12px; border-radius: 6px; margin-bottom: 10px; }
+  .step h4 { font-size: 13px; margin-bottom: 6px; color: #595959; }
+  /* 描述 */
+  .desc { color: #595959; font-size: 12px; line-height: 1.6; }
+  /* 网格 */
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- 侧边栏 -->
+  <div class="sidebar">
+    <div class="logo"><span class="em">📈</span> CURV 平台</div>
+    <div class="nav-group">概览</div>
+    <div class="nav-item active" data-page="dashboard"><span class="ic">🏠</span> 总览看板</div>
+    <div class="nav-group">数据中心</div>
+    <div class="nav-item" data-page="datasource"><span class="ic">🔌</span> 数据源配置</div>
+    <div class="nav-item" data-page="collection"><span class="ic">📅</span> 采集监控</div>
+    <div class="nav-item" data-page="quality"><span class="ic">📊</span> 数据质量</div>
+    <div class="nav-group">曲线管理</div>
+    <div class="nav-item" data-page="curvedef"><span class="ic">📋</span> 曲线定义</div>
+    <div class="nav-item" data-page="ratequery"><span class="ic">🔎</span> 利率数据查询</div>
+    <div class="nav-item" data-page="version"><span class="ic">🧬</span> 版本与血缘</div>
+    <div class="nav-item" data-page="derived"><span class="ic">🔁</span> 派生曲线配置</div>
+    <div class="nav-group">曲线构建</div>
+    <div class="nav-item" data-page="build"><span class="ic">⚙️</span> 曲线构建工作台</div>
+    <div class="nav-group">走势分析</div>
+    <div class="nav-item" data-page="trend"><span class="ic">📈</span> 时序分析</div>
+    <div class="nav-item" data-page="shape"><span class="ic">📐</span> 形态指标</div>
+    <div class="nav-group">风险计量</div>
+    <div class="nav-item" data-page="krd"><span class="ic">🎯</span> 关键利率久期</div>
+    <div class="nav-item" data-page="scenario"><span class="ic">🌪️</span> 情景模拟</div>
+    <div class="nav-item" data-page="stress"><span class="ic">⚠️</span> 压力测试</div>
+    <div class="nav-group">业务应用</div>
+    <div class="nav-item" data-page="ftp"><span class="ic">💰</span> FTP 定价</div>
+    <div class="nav-item" data-page="valuation"><span class="ic">📊</span> 估值核算</div>
+    <div class="nav-item" data-page="regulatory"><span class="ic">📤</span> 监管报送</div>
+    <div class="nav-group">智能助手</div>
+    <div class="nav-item" data-page="chat"><span class="ic">🤖</span> 智能问数</div>
+  </div>
+
+  <!-- 主体 -->
+  <div class="main">
+    <div class="topbar">
+      <div class="crumb">收益率曲线平台 / <b id="crumb">总览看板</b></div>
+      <div class="right">
+        <span>📅 2026-08-17</span>
+        <span>🟢 系统正常</span>
+        <span class="user">👤 资负管理员</span>
+      </div>
+    </div>
+    <div class="content">
+
+      <!-- 1. Dashboard -->
+      <div class="page active" id="dashboard">
+        <div class="page-title">总览看板</div>
+        <div class="page-sub">2026-08-17 · 收益率曲线平台运行总览</div>
+
+        <div class="grid-4" style="margin-bottom:14px;">
+          <div class="kpi"><div class="label">曲线总数</div><div class="value">13</div><div class="delta up">↑ 较昨日 +1</div></div>
+          <div class="kpi"><div class="label">今日采集成功率</div><div class="value">97.4%</div><div class="delta down">↑ 较昨日 +2.1%</div></div>
+          <div class="kpi"><div class="label">在管期限点</div><div class="value">420</div><div class="delta up">↑ 30 曲线 × 14 期限</div></div>
+          <div class="kpi"><div class="label">API 调用 QPS</div><div class="value">23</div><div class="delta down">↓ 较昨日 -5%</div></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">📈 核心曲线快照 <span class="tag">2026-08-17 official</span></div>
+            <div id="chart-dashboard-curve" class="chart"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">🚨 监控告警 <span class="tag">今日 3 条</span></div>
+            <table>
+              <tr><th>时间</th><th>级别</th><th>来源</th><th>描述</th><th>状态</th></tr>
+              <tr><td>09:42</td><td><span class="badge b-red">严重</span></td><td>中债登</td><td>10Y 国债采集超时（30s）</td><td><span class="badge b-green">已恢复</span></td></tr>
+              <tr><td>09:55</td><td><span class="badge b-orange">警告</span></td><td>校验引擎</td><td>5Y 国开债偏离官方值 1.8bp</td><td><span class="badge b-orange">待复核</span></td></tr>
+              <tr><td>10:18</td><td><span class="badge b-orange">警告</span></td><td>Shibor</td><td>3M Shibor 单日跳变 +12bp</td><td><span class="badge b-green">已确认</span></td></tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top:14px;">
+          <div class="card">
+            <div class="card-title">📊 关键形态指标</div>
+            <div class="grid-3" style="gap:10px;">
+              <div class="kpi"><div class="label">10Y-1Y 利差</div><div class="value" style="color:#1677ff;">68bp</div><div class="delta up">↑ 较上周 +5bp</div></div>
+              <div class="kpi"><div class="label">10Y 国债</div><div class="value" style="color:#722ed1;">2.45%</div><div class="delta up">↑ +1bp</div></div>
+              <div class="kpi"><div class="label">NS β₁(斜率)</div><div class="value" style="color:#13c2c2;">-0.85</div><div class="delta down">↓ 略陡峭化</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">📅 今日数据流时间线</div>
+            <table>
+              <tr><th>时间</th><th>事件</th><th>详情</th></tr>
+              <tr><td>06:00</td><td><span class="badge b-blue">采集</span></td><td>中债/外汇/Wind 三源全量拉取</td></tr>
+              <tr><td>07:15</td><td><span class="badge b-purple">清洗</span></td><td>420 期限点标准化完成</td></tr>
+              <tr><td>07:50</td><td><span class="badge b-blue">派生</span></td><td>信用利差/流动性利差曲线刷新</td></tr>
+              <tr><td>08:10</td><td><span class="badge b-purple">拟合</span></td><td>NS/NSS 拟合 RMSE=1.2bp</td></tr>
+              <tr><td>08:30</td><td><span class="badge b-green">发布</span></td><td>official 版本已发布，下游可用</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. 数据源配置 -->
+      <div class="page" id="datasource">
+        <div class="page-title">数据源配置</div>
+        <div class="page-sub">外部收益率曲线数据源接入与维护</div>
+        <div class="card">
+          <div class="card-title">已配置数据源 <span class="tag">5 个</span></div>
+          <table>
+            <tr><th>编码</th><th>名称</th><th>类型</th><th>采集方式</th><th>频率</th><th>最近采集</th><th>状态</th><th>操作</th></tr>
+            <tr><td><code>china_bond_treasury</code></td><td>中债登-国债收益率</td><td><span class="badge b-blue">API</span></td><td>REST</td><td>日终 06:00</td><td>2026-08-17 06:02</td><td><span class="badge b-green">正常</span></td><td><span class="btn btn-link">编辑</span> <span class="btn btn-link">采集</span></td></tr>
+            <tr><td><code>china_bond_corp</code></td><td>中债登-企业债</td><td><span class="badge b-blue">API</span></td><td>REST</td><td>日终 06:00</td><td>2026-08-17 06:03</td><td><span class="badge b-green">正常</span></td><td><span class="btn btn-link">编辑</span> <span class="btn btn-link">采集</span></td></tr>
+            <tr><td><code>shibor_curve</code></td><td>外汇交易中心-Shibor</td><td><span class="badge b-blue">API</span></td><td>REST</td><td>日终 06:00</td><td>2026-08-17 06:05</td><td><span class="badge b-green">正常</span></td><td><span class="btn btn-link">编辑</span> <span class="btn btn-link">采集</span></td></tr>
+            <tr><td><code>repo_curve</code></td><td>外汇交易中心-Repo</td><td><span class="badge b-blue">API</span></td><td>REST</td><td>日终 06:00</td><td>2026-08-17 06:08</td><td><span class="badge b-green">正常</span></td><td><span class="btn btn-link">编辑</span> <span class="btn btn-link">采集</span></td></tr>
+            <tr><td><code>wind_term</code></td><td>Wind 同业存单</td><td><span class="badge b-orange">文件</span></td><td>Excel 导入</td><td>手工</td><td>2026-08-16 18:00</td><td><span class="badge b-orange">超时</span></td><td><span class="btn btn-link">编辑</span> <span class="btn btn-link">导入</span></td></tr>
+          </table>
+          <div style="margin-top:14px;"><button class="btn btn-primary">+ 新增数据源</button></div>
+        </div>
+        <div class="card">
+          <div class="card-title">新增数据源（示例：央行 LPR）</div>
+          <div class="grid-2">
+            <div>
+              <div class="param-row"><label>编码</label><input value="pbc_lpr" /></div>
+              <div class="param-row"><label>名称</label><input value="央行 LPR 报价" /></div>
+              <div class="param-row"><label>类型</label><select><option>API 接口拉取</option><option>文件批量导入</option><option>手工录入</option></select></div>
+              <div class="param-row"><label>频率</label><select><option>日终 06:00</option><option>盘中 30min</option><option>实时事件</option></select></div>
+            </div>
+            <div>
+              <div class="param-row"><label>请求地址</label><input value="https://api.pbc.gov.cn/lpr" /></div>
+              <div class="param-row"><label>认证方式</label><select><option>API Key</option><option>OAuth2</option><option>无</option></select></div>
+              <div class="param-row"><label>字段映射</label><textarea style="width:100%;height:60px;border:1px solid #d9d9d9;border-radius:4px;padding:6px;font-size:12px;">{"1Y":"rate_1y","5Y":"rate_5y"}</textarea></div>
+            </div>
+          </div>
+          <div style="margin-top:14px;text-align:right;"><button class="btn">取消</button> <button class="btn btn-primary">保存</button></div>
+        </div>
+      </div>
+
+      <!-- 3. 采集监控 -->
+      <div class="page" id="collection">
+        <div class="page-title">采集监控</div>
+        <div class="page-sub">数据采集任务执行情况实时监控</div>
+        <div class="grid-4" style="margin-bottom:14px;">
+          <div class="kpi"><div class="label">今日采集任务</div><div class="value">5</div><div class="delta">全部执行</div></div>
+          <div class="kpi"><div class="label">成功率</div><div class="value" style="color:#52c41a;">97.4%</div><div class="delta">150/154 项</div></div>
+          <div class="kpi"><div class="label">平均耗时</div><div class="value">2.8s</div><div class="delta down">↓ 较昨日 -0.4s</div></div>
+          <div class="kpi"><div class="label">下次调度</div><div class="value" style="font-size:16px;color:#fa8c16;">明天 06:00</div><div class="delta">日终批量</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">采集日志</div>
+          <table>
+            <tr><th>任务</th><th>开始时间</th><th>耗时</th><th>记录数</th><th>状态</th><th>错误</th></tr>
+            <tr><td>中债-国债收益率</td><td>06:00:01</td><td>1.8s</td><td>14</td><td><span class="badge b-green">成功</span></td><td>-</td></tr>
+            <tr><td>中债-企业债</td><td>06:00:03</td><td>2.2s</td><td>14</td><td><span class="badge b-green">成功</span></td><td>-</td></tr>
+            <tr><td>外汇-Shibor</td><td>06:00:05</td><td>0.9s</td><td>8</td><td><span class="badge b-green">成功</span></td><td>-</td></tr>
+            <tr><td>外汇-Repo</td><td>06:00:06</td><td>2.4s</td><td>8</td><td><span class="badge b-green">成功</span></td><td>-</td></tr>
+            <tr><td>中债-10Y 国债（增量）</td><td>09:42:00</td><td>30s</td><td>-</td><td><span class="badge b-red">超时</span></td><td>连接超时，已重试 3 次</td></tr>
+            <tr><td>中债-10Y 国债（重试）</td><td>09:43:30</td><td>1.6s</td><td>1</td><td><span class="badge b-green">成功</span></td><td>-</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- 4. 数据质量 -->
+      <div class="page" id="quality">
+        <div class="page-title">数据质量看板</div>
+        <div class="page-sub">多维度数据质量评估与异常监控</div>
+        <div class="row">
+          <div class="card" style="flex:2;">
+            <div class="card-title">数据质量评分趋势</div>
+            <div id="chart-quality-trend" class="chart"></div>
+          </div>
+          <div class="card" style="flex:1;">
+            <div class="card-title">校验规则</div>
+            <table>
+              <tr><th>规则</th><th>阈值</th><th>命中</th></tr>
+              <tr><td>非空</td><td>100%</td><td><span class="badge b-green">通过</span></td></tr>
+              <tr><td>取值范围</td><td>0-20%</td><td><span class="badge b-green">通过</span></td></tr>
+              <tr><td>单调性</td><td>正常递增</td><td><span class="badge b-orange">2 处倒挂</span></td></tr>
+              <tr><td>日终对账</td><td>差异 &lt; 2bp</td><td><span class="badge b-orange">1 处超阈</span></td></tr>
+              <tr><td>相邻跳点</td><td>&lt; 30bp</td><td><span class="badge b-green">通过</span></td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. 曲线定义 -->
+      <div class="page" id="curvedef">
+        <div class="page-title">曲线定义</div>
+        <div class="page-sub">曲线元数据与采集映射配置</div>
+        <div class="card">
+          <div class="card-title">已定义曲线 <span class="tag">13 条</span></div>
+          <table>
+            <tr><th>编码</th><th>名称</th><th>分类</th><th>币种</th><th>利率类型</th><th>计息基准</th><th>期限点</th><th>数据源</th><th>状态</th></tr>
+            <tr><td><code>cnb_treasury_yield</code></td><td>中债国债收益率</td><td>无风险</td><td>CNY</td><td>到期收益率</td><td>ACT/365</td><td>14</td><td>中债登</td><td><span class="badge b-green">official</span></td></tr>
+            <tr><td><code>cnb_policy_fin</code></td><td>中债国开债收益率</td><td>无风险</td><td>CNY</td><td>到期收益率</td><td>ACT/365</td><td>14</td><td>中债登</td><td><span class="badge b-green">official</span></td></tr>
+            <tr><td><code>cnb_corp_aaa</code></td><td>中债企业债 AAA</td><td>信用</td><td>CNY</td><td>到期收益率</td><td>ACT/365</td><td>10</td><td>中债登</td><td><span class="badge b-green">official</span></td></tr>
+            <tr><td><code>shibor_3m</code></td><td>Shibor</td><td>货币市场</td><td>CNY</td><td>即期利率</td><td>ACT/360</td><td>8</td><td>外汇交易中心</td><td><span class="badge b-green">official</span></td></tr>
+            <tr><td><code>repo_7d</code></td><td>银行间质押式回购 7D</td><td>货币市场</td><td>CNY</td><td>即期利率</td><td>ACT/360</td><td>8</td><td>外汇交易中心</td><td><span class="badge b-green">official</span></td></tr>
+            <tr><td><code>credit_spread_aaa</code></td><td>信用利差 AAA</td><td>派生</td><td>CNY</td><td>利差</td><td>ACT/365</td><td>10</td><td>公式派生</td><td><span class="badge b-purple">derived</span></td></tr>
+            <tr><td><code>lpr_1y</code></td><td>贷款市场报价利率 1Y</td><td>政策</td><td>CNY</td><td>基准利率</td><td>ACT/360</td><td>2</td><td>央行</td><td><span class="badge b-gray">手工</span></td></tr>
+          </table>
+          <div style="margin-top:14px;"><button class="btn btn-primary">+ 新建曲线</button></div>
+        </div>
+      </div>
+
+      <!-- 6. 利率数据查询 -->
+      <div class="page" id="ratequery">
+        <div class="page-title">利率数据查询</div>
+        <div class="page-sub">任意曲线、任意日期、任意期限点的利率查询</div>
+        <div class="card">
+          <div class="form-row">
+            <label>曲线</label><select><option>中债国债收益率</option><option>Shibor</option><option>中债企业债 AAA</option></select>
+            <label>日期</label><input type="date" value="2026-08-17" />
+            <label>期限</label><select><option>全部</option><option>1Y</option><option>5Y</option><option>10Y</option></select>
+            <button class="btn btn-primary">查询</button>
+          </div>
+          <div id="chart-ratequery" class="chart"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">查询结果（2026-08-17 中债国债收益率）</div>
+          <table>
+            <tr><th>期限</th><th>利率</th><th>前一日</th><th>变化</th><th>1周前</th><th>1月前</th><th>来源</th><th>版本</th></tr>
+            <tr><td>1M</td><td>1.45%</td><td>1.44%</td><td><span class="badge b-red">+1bp</span></td><td>1.46%</td><td>1.50%</td><td>中债登</td><td><span class="badge b-green">official</span></td></tr>
+            <tr><td>3M</td><td>1.58%</td><td>1.57%</td><td><span class="badge b-red">+1bp</span></td><td>1.59%</td><td>1.62%</td><td>中债登</td><td><span class="badge b-green">official</span></td></tr>
+            <tr><td>1Y</td><td>1.77%</td><td>1.78%</td><td><span class="badge b-green">-1bp</span></td><td>1.80%</td><td>1.85%</td><td>中债登</td><td><span class="badge b-green">official</span></td></tr>
+            <tr><td>5Y</td><td>2.15%</td><td>2.13%</td><td><span class="badge b-red">+2bp</span></td><td>2.10%</td><td>2.08%</td><td>中债登</td><td><span class="badge b-green">official</span></td></tr>
+            <tr><td>10Y</td><td>2.45%</td><td>2.44%</td><td><span class="badge b-red">+1bp</span></td><td>2.40%</td><td>2.35%</td><td>中债登</td><td><span class="badge b-green">official</span></td></tr>
+            <tr><td>30Y</td><td>2.78%</td><td>2.77%</td><td><span class="badge b-red">+1bp</span></td><td>2.72%</td><td>2.65%</td><td>中债登</td><td><span class="badge b-green">official</span></td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- 7. 版本与血缘 -->
+      <div class="page" id="version">
+        <div class="page-title">版本与血缘管理</div>
+        <div class="page-sub">raw → cleaned → official 三态版本管理 + 全链路血缘</div>
+        <div class="card">
+          <div class="card-title">版本对比：中债国债 2026-08-17</div>
+          <table>
+            <tr><th>期限</th><th>raw（原始）</th><th>cleaned（清洗）</th><th>official（发布）</th><th>差异</th><th>操作</th></tr>
+            <tr><td>1Y</td><td>1.78%</td><td>1.78%</td><td>1.77%</td><td>-1bp（人工调整）</td><td><span class="btn btn-link">查看血缘</span></td></tr>
+            <tr><td>5Y</td><td>2.13%</td><td>2.13%</td><td>2.15%</td><td>+2bp（人工调整）</td><td><span class="btn btn-link">查看血缘</span></td></tr>
+            <tr><td>10Y</td><td>2.45%</td><td>2.45%</td><td>2.45%</td><td>0</td><td><span class="btn btn-link">查看血缘</span></td></tr>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-title">血缘链路示例：10Y 国债 2026-08-17 official = 2.45%</div>
+          <div class="desc" style="line-height:2;">
+            <b>📥 原始采集：</b>中债登 china_bond_treasury · 06:00:01 · 字段 10Y=2.4453 · 操作人: collector-bot<br/>
+            <b>🧹 清洗转换：</b>缺失值填充=N/A · 口径标准化 ACT/365 · 07:15:23 · 操作人: cleaner-bot<br/>
+            <b>📐 拟合参考：</b>NS 拟合 β₀=2.78 β₁=-0.85 β₂=-1.20 τ=1.50 · 08:10:05<br/>
+            <b>✋ 人工调整：</b>+0.5bp（依据：与外汇交易中心报价对账差异）· 09:32:18 · 操作人: 张三<br/>
+            <b>✅ 业务发布：</b>official 版本生效 · 09:00:00 · 操作人: 李四（资负主管）<br/>
+            <b>📊 消费记录：</b>FTP 定价服务 09:01 调用 · ALM 引擎 09:05 调用 · 估值服务 10:00 调用
+          </div>
+        </div>
+      </div>
+
+      <!-- 8. 派生曲线配置 -->
+      <div class="page" id="derived">
+        <div class="page-title">派生曲线配置</div>
+        <div class="page-sub">基于基础曲线通过公式自动派生</div>
+        <div class="card">
+          <div class="card-title">派生规则</div>
+          <table>
+            <tr><th>派生曲线</th><th>基础曲线</th><th>公式</th><th>自动更新</th><th>操作</th></tr>
+            <tr><td>信用利差 AAA</td><td>中债企业债 AAA - 中债国债</td><td><code>spread = cnb_corp_aaa - cnb_treasury_yield</code></td><td><span class="badge b-green">是</span></td><td><span class="btn btn-link">编辑</span></td></tr>
+            <tr><td>流动性利差</td><td>同业存单 - 国开债</td><td><code>spread = ncd_curve - cnb_policy_fin</code></td><td><span class="badge b-green">是</span></td><td><span class="btn btn-link">编辑</span></td></tr>
+            <tr><td>10Y-1Y 利差</td><td>中债国债（内部派生）</td><td><code>spread = tenor_10y - tenor_1y</code></td><td><span class="badge b-green">是</span></td><td><span class="btn btn-link">编辑</span></td></tr>
+          </table>
+          <div style="margin-top:14px;"><button class="btn btn-primary">+ 新建派生规则</button></div>
+        </div>
+      </div>
+
+      <!-- 9. 曲线构建工作台 -->
+      <div class="page" id="build">
+        <div class="page-title">曲线构建工作台 <span class="badge b-purple" style="font-size:11px;">核心</span></div>
+        <div class="page-sub">配置参数 → 预览 → 保存版本 / 发布 official</div>
+        <div class="workbench">
+          <div class="left">
+            <div class="card">
+              <div class="step">
+                <h4>① 基础曲线</h4>
+                <div class="param-row"><label>短端</label><select><option>Repo 7D</option><option>Shibor 3M</option></select></div>
+                <div class="param-row"><label>长端</label><select><option>中债国债</option><option>国开债</option></select></div>
+              </div>
+              <div class="step">
+                <h4>② 构建方法</h4>
+                <div class="param-row"><label>主方法</label><select><option>拼接 Splicing</option><option>插值 Interpolation</option><option>平滑 Smoothing</option><option>拟合 Fitting</option></select></div>
+              </div>
+              <div class="step">
+                <h4>③ 参数（拼接）</h4>
+                <div class="param-row"><label>拼接点</label><select><option>1Y</option><option>2Y</option><option>6M</option></select></div>
+                <div class="param-row"><label>重叠区间</label><input value="6M-2Y" /></div>
+                <div class="param-row"><label>过渡模式</label><select><option>线性过渡</option><option>短端优先</option><option>长端优先</option><option>取均值</option></select></div>
+              </div>
+              <div class="step">
+                <h4>③ 参数（拟合）</h4>
+                <div class="param-row"><label>模型</label><select><option>Nelson-Siegel</option><option>Svensson</option><option>多项式</option><option>指数样条</option></select></div>
+                <div class="param-row"><label>τ 初值</label><input value="1.50" /></div>
+              </div>
+              <div style="margin-top:10px;display:flex;gap:8px;">
+                <button class="btn btn-primary" style="flex:1;">⚙ 执行构建</button>
+                <button class="btn">↻ 重置</button>
+              </div>
+            </div>
+          </div>
+          <div class="right">
+            <div class="card">
+              <div class="card-title">④ 预览：原始 vs 构建后</div>
+              <div id="chart-build-preview" class="chart"></div>
+            </div>
+            <div class="card">
+              <div class="card-title">⑤ 拟合参数（NS）</div>
+              <table>
+                <tr><th>参数</th><th>值</th><th>经济含义</th></tr>
+                <tr><td>β₀</td><td>2.78</td><td>长期利率水平</td></tr>
+                <tr><td>β₁</td><td>-0.85</td><td>斜率（短端溢价）</td></tr>
+                <tr><td>β₂</td><td>-1.20</td><td>中段曲率</td></tr>
+                <tr><td>τ</td><td>1.50</td><td>曲率衰减参数</td></tr>
+                <tr><td><b>RMSE</b></td><td><b>1.2 bp</b></td><td>✓ 达标（&lt;2bp）</td></tr>
+                <tr><td><b>R²</b></td><td><b>0.9987</b></td><td>✓ 优秀</td></tr>
+              </table>
+            </div>
+            <div class="card">
+              <div class="card-title">⑥ 操作日志</div>
+              <table>
+                <tr><th>时间</th><th>事件</th><th>参数</th></tr>
+                <tr><td>10:23:45</td><td>NS 拟合完成</td><td>β₀=2.78 β₁=-0.85 β₂=-1.20 τ=1.50</td></tr>
+                <tr><td>10:24:12</td><td>参数调优</td><td>τ: 1.50 → 1.55（RMSE 1.5→1.2）</td></tr>
+                <tr><td>10:25:00</td><td>保存为版本</td><td>build_v20260817_001</td></tr>
+              </table>
+              <div style="margin-top:10px;display:flex;gap:8px;">
+                <button class="btn">保存为版本</button>
+                <button class="btn btn-primary">发布 official</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 10. 时序分析 -->
+      <div class="page" id="trend">
+        <div class="page-title">时序分析</div>
+        <div class="page-sub">任意期限点利率的历史走势与统计</div>
+        <div class="card">
+          <div class="form-row">
+            <label>曲线</label><select><option>中债国债</option><option>Shibor</option></select>
+            <label>期限</label><select><option>1Y</option><option>5Y</option><option>10Y</option><option>30Y</option></select>
+            <label>时间范围</label><select><option>近 1 月</option><option>近 1 年</option><option>近 5 年</option></select>
+            <button class="btn btn-primary">查询</button>
+          </div>
+          <div id="chart-trend" class="chart-lg"></div>
+        </div>
+        <div class="grid-4">
+          <div class="kpi"><div class="label">均值</div><div class="value">2.42%</div></div>
+          <div class="kpi"><div class="label">最大值</div><div class="value" style="color:#ff4d4f;">2.78%</div></div>
+          <div class="kpi"><div class="label">最小值</div><div class="value" style="color:#52c41a;">1.85%</div></div>
+          <div class="kpi"><div class="label">年化波动率</div><div class="value">8.5%</div></div>
+        </div>
+      </div>
+
+      <!-- 11. 形态指标 -->
+      <div class="page" id="shape">
+        <div class="page-title">形态指标</div>
+        <div class="page-sub">长短端利差 · 信用利差 · 斜率 · 曲率 · 倒挂识别</div>
+        <div class="row">
+          <div class="card" style="flex:1;">
+            <div class="card-title">利差走势（10Y-1Y）</div>
+            <div id="chart-shape-spread" class="chart"></div>
+          </div>
+          <div class="card" style="flex:1;">
+            <div class="card-title">形态指标仪表盘</div>
+            <div class="grid-2" style="gap:10px;">
+              <div class="kpi"><div class="label">10Y-1Y 利差</div><div class="value">68 bp</div><div class="delta up">↑ +5bp</div></div>
+              <div class="kpi"><div class="label">10Y-5Y 利差</div><div class="value">30 bp</div><div class="delta up">↑ +1bp</div></div>
+              <div class="kpi"><div class="label">信用利差 AAA</div><div class="value">85 bp</div><div class="delta down">↓ -3bp</div></div>
+              <div class="kpi"><div class="label">斜率 NS β₁</div><div class="value">-0.85</div><div class="delta">曲线陡峭</div></div>
+              <div class="kpi"><div class="label">曲率 NS β₂</div><div class="value">-1.20</div><div class="delta">轻度弯曲</div></div>
+              <div class="kpi"><div class="label">倒挂区间</div><div class="value" style="color:#52c41a;">无</div><div class="delta">正常曲线</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">三维曲面图：时间 × 期限 × 利率</div>
+          <div id="chart-shape-3d" class="chart-lg"></div>
+        </div>
+      </div>
+
+      <!-- 12. 关键利率久期 -->
+      <div class="page" id="krd">
+        <div class="page-title">关键利率久期（KRD）</div>
+        <div class="page-sub">对每个关键期限点单独冲击 1bp，计算组合 PV 变化</div>
+        <div class="card">
+          <div class="form-row">
+            <label>组合</label><select><option>债券组合 A（万级现金流）</option><option>贷款 + 债券 组合 B</option></select>
+            <label>曲线</label><select><option>中债国债</option></select>
+            <label>日期</label><input type="date" value="2026-08-17" />
+            <button class="btn btn-primary">计算</button>
+          </div>
+          <div id="chart-krd" class="chart"></div>
+          <div style="margin-top:14px;">
+            <table>
+              <tr><th>关键期限</th><th>3M</th><th>1Y</th><th>3Y</th><th>5Y</th><th>10Y</th><th>30Y</th><th>合计 DV01</th></tr>
+              <tr><td>KRD（年）</td><td>0.05</td><td>0.18</td><td>0.42</td><td>1.25</td><td>3.85</td><td>1.50</td><td><b>7.25</b></td></tr>
+              <tr><td>PV01（万元）</td><td>5.2</td><td>18.6</td><td>43.4</td><td>129.0</td><td>397.2</td><td>154.7</td><td><b>748.1</b></td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 13. 情景模拟 -->
+      <div class="page" id="scenario">
+        <div class="page-title">情景模拟</div>
+        <div class="page-sub">5 类预置情景 + 自定义情景 + 历史重演</div>
+        <div class="card">
+          <div class="card-title">情景配置</div>
+          <div class="grid-4" style="margin-bottom:14px;">
+            <div class="kpi" style="cursor:pointer;border:2px solid #722ed1;">
+              <div class="label">📌 平行冲击</div>
+              <div class="value">+100 bp</div>
+              <div class="delta">所有期限 +100bp</div>
+            </div>
+            <div class="kpi" style="cursor:pointer;">
+              <div class="label">📌 陡峭化</div>
+              <div class="value">短-50 长+50</div>
+              <div class="delta">短端下行/长端上行</div>
+            </div>
+            <div class="kpi" style="cursor:pointer;">
+              <div class="label">📌 平坦化</div>
+              <div class="value">短+50 长-50</div>
+              <div class="delta">短端上行/长端下行</div>
+            </div>
+            <div class="kpi" style="cursor:pointer;">
+              <div class="label">📌 历史极端</div>
+              <div class="value">2013 钱荒</div>
+              <div class="delta">重演历史冲击</div>
+            </div>
+          </div>
+          <div id="chart-scenario" class="chart"></div>
+          <div style="margin-top:14px;">
+            <table>
+              <tr><th>指标</th><th>当前</th><th>+100bp 后</th><th>变化</th></tr>
+              <tr><td>10Y 国债</td><td>2.45%</td><td>3.45%</td><td><span class="badge b-red">+100bp</span></td></tr>
+              <tr><td>PV01（万元）</td><td>748.1</td><td>748.1</td><td>-</td></tr>
+              <tr><td>组合价值（亿元）</td><td>100.00</td><td>92.52</td><td><span class="badge b-red">-7.48 亿</span></td></tr>
+              <tr><td>NII 变化（亿元/年）</td><td>-</td><td>+0.85</td><td><span class="badge b-green">+8500 万</span></td></tr>
+              <tr><td>EVE 变化（亿元）</td><td>-</td><td>-7.48</td><td><span class="badge b-red">-7.48 亿</span></td></tr>
+            </table>
+            <div style="margin-top:10px;"><button class="btn btn-primary">📤 导出 PDF 报告</button> <button class="btn">📊 推送到 ALMT</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 14. 压力测试 -->
+      <div class="page" id="stress">
+        <div class="page-title">压力测试</div>
+        <div class="page-sub">多因子组合冲击（利率+信用利差+流动性利差）+ IRRBB 监管报送</div>
+        <div class="card">
+          <div class="card-title">压力情景配置</div>
+          <div class="form-row">
+            <label>利率冲击</label><select><option>+200bp 平行</option><option>+100bp 平行</option><option>-100bp 平行</option></select>
+            <label>信用利差冲击</label><select><option>+50bp</option><option>+100bp</option><option>+200bp</option></select>
+            <label>流动性利差冲击</label><select><option>+20bp</option><option>+50bp</option></select>
+            <button class="btn btn-primary">执行压力测试</button>
+          </div>
+          <div class="grid-3" style="margin-top:14px;">
+            <div class="kpi"><div class="label">PV 变化</div><div class="value" style="color:#ff4d4f;">-15.2 亿</div><div class="delta">-15.2%</div></div>
+            <div class="kpi"><div class="label">NII 变化</div><div class="value" style="color:#52c41a;">+1.7 亿</div><div class="delta">+8.5%</div></div>
+            <div class="kpi"><div class="label">EVE 变化</div><div class="value" style="color:#ff4d4f;">-15.2 亿</div><div class="delta">-15.2%</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">IRRBB 监管 6 情景结果</div>
+          <table>
+            <tr><th>情景</th><th>ΔEVE（万元）</th><th>ΔEVE/EVE</th><th>ΔNII（万元）</th><th>ΔNII/NII</th><th>监管阈值</th><th>结果</th></tr>
+            <tr><td>平行 +200bp</td><td>-15,200</td><td>-15.2%</td><td>+8,500</td><td>+8.5%</td><td>±15%</td><td><span class="badge b-orange">预警</span></td></tr>
+            <tr><td>平行 -200bp</td><td>+12,800</td><td>+12.8%</td><td>-6,200</td><td>-6.2%</td><td>±15%</td><td><span class="badge b-green">达标</span></td></tr>
+            <tr><td>陡峭化</td><td>-8,500</td><td>-8.5%</td><td>+3,200</td><td>+3.2%</td><td>±15%</td><td><span class="badge b-green">达标</span></td></tr>
+            <tr><td>平坦化</td><td>-7,200</td><td>-7.2%</td><td>+2,800</td><td>+2.8%</td><td>±15%</td><td><span class="badge b-green">达标</span></td></tr>
+            <tr><td>短端利率 ↑</td><td>-5,800</td><td>-5.8%</td><td>+1,500</td><td>+1.5%</td><td>±15%</td><td><span class="badge b-green">达标</span></td></tr>
+            <tr><td>短端利率 ↓</td><td>+4,200</td><td>+4.2%</td><td>-1,800</td><td>-1.8%</td><td>±15%</td><td><span class="badge b-green">达标</span></td></tr>
+          </table>
+          <div style="margin-top:14px;"><button class="btn btn-primary">📤 生成 IRRBB 监管报表</button></div>
+        </div>
+      </div>
+
+      <!-- 15. FTP 定价 -->
+      <div class="page" id="ftp">
+        <div class="page-title">FTP 定价</div>
+        <div class="page-sub">基于收益率曲线构建 FTP 基准曲线 + 业务条线加点</div>
+        <div class="card">
+          <div class="card-title">FTP 定价表（2026-08-17）</div>
+          <table>
+            <tr><th>期限</th><th>基准曲线</th><th>存款加点</th><th>存款 FTP</th><th>贷款加点</th><th>贷款 FTP</th><th>票据加点</th><th>票据 FTP</th></tr>
+            <tr><td>活期</td><td>1.45%</td><td>+0bp</td><td><b>1.45%</b></td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+            <tr><td>3M</td><td>1.58%</td><td>+5bp</td><td><b>1.63%</b></td><td>+80bp</td><td><b>2.38%</b></td><td>+15bp</td><td><b>1.73%</b></td></tr>
+            <tr><td>1Y</td><td>1.77%</td><td>+10bp</td><td><b>1.87%</b></td><td>+95bp</td><td><b>2.72%</b></td><td>+25bp</td><td><b>2.02%</b></td></tr>
+            <tr><td>3Y</td><td>2.05%</td><td>+15bp</td><td><b>2.20%</b></td><td>+120bp</td><td><b>3.25%</b></td><td>+40bp</td><td><b>2.45%</b></td></tr>
+            <tr><td>5Y</td><td>2.15%</td><td>+20bp</td><td><b>2.35%</b></td><td>+135bp</td><td><b>3.50%</b></td><td>+45bp</td><td><b>2.60%</b></td></tr>
+          </table>
+          <div style="margin-top:14px;"><button class="btn btn-primary">📤 发布到 FTP 系统</button></div>
+        </div>
+      </div>
+
+      <!-- 16. 估值核算 -->
+      <div class="page" id="valuation">
+        <div class="page-title">估值核算</div>
+        <div class="page-sub">债券估值 · 远期利率 · 折现因子查询</div>
+        <div class="card">
+          <div class="card-title">债券估值查询</div>
+          <div class="form-row">
+            <label>债券代码</label><input value="23 国债 15" />
+            <label>票面利率</label><input value="2.68%" />
+            <label>剩余期限</label><input value="7.5 年" />
+            <button class="btn btn-primary">估值</button>
+          </div>
+          <div id="chart-valuation" class="chart"></div>
+          <table style="margin-top:14px;">
+            <tr><th>折现曲线</th><th>日期</th><th>版本</th><th>PV（万元）</th><th>YTM</th><th>久期</th></tr>
+            <tr><td>中债国债</td><td>2026-08-17</td><td><span class="badge b-green">official</span></td><td><b>10,256.32</b></td><td>2.55%</td><td>6.85</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- 17. 监管报送 -->
+      <div class="page" id="regulatory">
+        <div class="page-title">监管报送</div>
+        <div class="page-sub">IRRBB 标准监管报表自动生成</div>
+        <div class="card">
+          <div class="card-title">📤 监管报表导出</div>
+          <table>
+            <tr><th>报表名称</th><th>频度</th><th>最近生成</th><th>格式</th><th>操作</th></tr>
+            <tr><td>IRRBB 标准化报表（6 情景）</td><td>季度</td><td>2026-06-30</td><td>Excel</td><td><button class="btn btn-primary">下载</button></td></tr>
+            <tr><td>利率风险计量表（G33）</td><td>季度</td><td>2026-06-30</td><td>Excel</td><td><button class="btn btn-primary">下载</button></td></tr>
+            <tr><td>压力测试报告</td><td>季度</td><td>2026-06-30</td><td>PDF</td><td><button class="btn btn-primary">下载</button></td></tr>
+            <tr><td>收益率曲线日报</td><td>日</td><td>2026-08-17</td><td>Excel</td><td><button class="btn btn-primary">下载</button></td></tr>
+          </table>
+          <div style="margin-top:14px;"><button class="btn btn-primary">📤 一键生成本期全部报表</button></div>
+        </div>
+      </div>
+
+      <!-- 18. 智能问数 -->
+      <div class="page" id="chat">
+        <div class="page-title">智能问数</div>
+        <div class="page-sub">CURVE_CHAT 自然语言问数 · SSE 流式回答 · 内嵌图表 · 参考资料</div>
+        <div class="chat">
+          <div class="msg user">10 年期国债近一年走势如何？</div>
+          <div class="msg bot">
+            <div>📈 <b>10 年期国债收益率近一年走势分析：</b></div>
+            <div style="margin-top:6px;">
+              近一年（2025-08 ~ 2026-08）10 年期国债收益率从 2.10% 上升至 2.45%，累计上行 35bp。
+              <ul style="margin:6px 0 6px 18px;line-height:1.7;">
+                <li>均值：2.32%</li>
+                <li>最大值：2.78%（2026-05）</li>
+                <li>最小值：1.85%（2025-09）</li>
+                <li>年化波动率：8.5%</li>
+              </ul>
+            </div>
+            <div class="chart-inline"><div id="chart-chat-1" style="width:100%;height:220px;"></div></div>
+            <div style="margin-top:6px;font-size:11px;color:#8c8c8c;">
+              📚 参考：基于 curv_rate_data 表 250 个交易日数据；拟合 NS β₁ 时序显示曲线持续陡峭化
+            </div>
+          </div>
+          <div class="msg user">如果今天利率上行 100bp，我的债券组合价值变化多少？</div>
+          <div class="msg bot">
+            <div>🌪️ <b>+100bp 平行冲击情景模拟：</b></div>
+            <div style="margin-top:6px;">
+              基于「债券组合 A」（万级现金流），以中债国债 2026-08-17 official 版本为基准：
+              <table style="margin:8px 0;font-size:11px;">
+                <tr><th>指标</th><th>当前</th><th>+100bp 后</th><th>变化</th></tr>
+                <tr><td>组合价值</td><td>100.00 亿</td><td>92.52 亿</td><td style="color:#ff4d4f;">-7.48 亿</td></tr>
+                <tr><td>DV01</td><td>-</td><td>748.1 万</td><td>-</td></tr>
+                <tr><td>KRD 集中度</td><td>10Y 53%</td><td>10Y 53%</td><td>未变</td></tr>
+              </table>
+              <div class="chart-inline"><div id="chart-chat-2" style="width:100%;height:220px;"></div></div>
+            </div>
+            <div style="margin-top:6px;font-size:11px;color:#8c8c8c;">
+              📚 参考：组合来自 ALMT 同步；KRD 计算用 scipy/scipy 数值方法；可一键推送到 ALMT 复核
+            </div>
+            <div style="margin-top:8px;"><button class="btn">📊 推送到 ALMT</button> <button class="btn">📤 导出 PDF 报告</button></div>
+          </div>
+          <div class="msg user">今天曲线数据有什么异常？</div>
+          <div class="msg bot">
+            <div>🚨 <b>今日数据异常检查（2026-08-17）：</b></div>
+            <div style="margin-top:6px;">
+              <ul style="margin:0 0 0 18px;line-height:1.7;">
+                <li>⚠️ <b>5Y 国开债偏离官方值 1.8bp</b>（阈值：2bp，待复核）</li>
+                <li>⚠️ <b>3M Shibor 单日跳变 +12bp</b>（已确认，月末资金面紧张）</li>
+                <li>✓ 10Y 国债拟合 RMSE = 1.2bp（达标）</li>
+                <li>✓ 1Y-10Y 利差 68bp，历史分位数 65%（中性）</li>
+                <li>✓ 全曲线无倒挂</li>
+              </ul>
+            </div>
+            <div style="margin-top:8px;"><button class="btn">查看完整校验报告</button></div>
+          </div>
+        </div>
+        <div class="chat-input">
+          <input placeholder="向曲线平台提问，如「信用利差最近走势」「构建一条无风险曲线」「导出今日曲线报告」..." />
+          <button class="btn btn-primary">发送</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+// 导航切换
+const navItems = document.querySelectorAll('.nav-item');
+const pages = document.querySelectorAll('.page');
+const crumb = document.getElementById('crumb');
+navItems.forEach(item => {
+  item.addEventListener('click', () => {
+    const page = item.dataset.getAttribute('page');
+    navItems.forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+    pages.forEach(p => p.classList.remove('active'));
+    const target = document.getElementById(page);
+    if (target) target.classList.add('active');
+    crumb.textContent = item.textContent.trim();
+    setTimeout(renderCharts, 100);
+  });
+});
+
+// 图表渲染
+const charts = {};
+function renderCharts() {
+  // 通用曲线数据
+  const tenorData = ['1M','3M','6M','9M','1Y','2Y','3Y','5Y','7Y','10Y','15Y','20Y','30Y'];
+  const treasury = [1.45, 1.58, 1.65, 1.72, 1.77, 1.85, 1.95, 2.15, 2.32, 2.45, 2.62, 2.72, 2.78];
+  const policy = [1.50, 1.62, 1.72, 1.78, 1.85, 1.95, 2.05, 2.25, 2.42, 2.55, 2.72, 2.82, 2.88];
+  const corpAAA = [1.62, 1.78, 1.95, 2.05, 2.15, 2.35, 2.55, 2.85, 3.10, 3.30, 3.55, 3.70, 3.85];
+  const colorTreasury = '#722ed1', colorPolicy = '#1677ff', colorCorp = '#13c2c2';
+
+  // 1. Dashboard 曲线快照
+  if (!charts.dashboard) charts.dashboard = echarts.init(document.getElementById('chart-dashboard-curve'));
+  charts.dashboard.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['中债国债', '国开债', '企业债 AAA'], top: 0, textStyle: { fontSize: 11 } },
+    grid: { left: 40, right: 20, top: 35, bottom: 30 },
+    xAxis: { type: 'category', data: tenorData, axisLabel: { fontSize: 10 } },
+    yAxis: { type: 'value', name: '%', axisLabel: { fontSize: 10 } },
+    series: [
+      { name: '中债国债', data: treasury, type: 'line', smooth: true, lineStyle: { width: 2 }, itemStyle: { color: colorTreasury } },
+      { name: '国开债', data: policy, type: 'line', smooth: true, lineStyle: { width: 2 }, itemStyle: { color: colorPolicy } },
+      { name: '企业债 AAA', data: corpAAA, type: 'line', smooth: true, lineStyle: { width: 2 }, itemStyle: { color: colorCorp } },
+    ]
+  });
+
+  // 2. Quality 趋势
+  if (!charts.quality) charts.quality = echarts.init(document.getElementById('chart-quality-trend'));
+  const dates = Array.from({length: 30}, (_,i) => `8月${i+1}日`);
+  charts.quality.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { top: 0, textStyle: { fontSize: 11 } },
+    grid: { left: 40, right: 20, top: 35, bottom: 30 },
+    xAxis: { type: 'category', data: dates, axisLabel: { fontSize: 9, rotate: 45 } },
+    yAxis: { type: 'value', min: 80, max: 100 },
+    series: [
+      { name: '完整性', data: Array.from({length:30}, ()=>99+Math.random()), type: 'line', smooth: true, itemStyle: { color: '#722ed1' } },
+      { name: '准确性', data: Array.from({length:30}, ()=>96+Math.random()*2), type: 'line', smooth: true, itemStyle: { color: '#1677ff' } },
+      { name: '及时性', data: Array.from({length:30}, ()=>92+Math.random()*5), type: 'line', smooth: true, itemStyle: { color: '#13c2c2' } },
+    ]
+  });
+
+  // 3. Rate Query
+  if (!charts.ratequery) charts.ratequery = echarts.init(document.getElementById('chart-ratequery'));
+  charts.ratequery.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['当前', '前日', '1 周前', '1 月前'], top: 0, textStyle: { fontSize: 11 } },
+    grid: { left: 40, right: 20, top: 35, bottom: 30 },
+    xAxis: { type: 'category', data: tenorData, axisLabel: { fontSize: 10 } },
+    yAxis: { type: 'value', name: '%' },
+    series: [
+      { name: '当前', data: treasury, type: 'line', smooth: true, itemStyle: { color: '#722ed1' } },
+      { name: '前日', data: treasury.map(v => v - 0.01), type: 'line', smooth: true, itemStyle: { color: '#1677ff' } },
+      { name: '1 周前', data: treasury.map(v => v - 0.03), type: 'line', smooth: true, itemStyle: { color: '#13c2c2' } },
+      { name: '1 月前', data: treasury.map(v => v - 0.05), type: 'line', smooth: true, itemStyle: { color: '#fa8c16' } },
+    ]
+  });
+
+  // 4. Build preview
+  if (!charts.build) charts.build = echarts.init(document.getElementById('chart-build-preview'));
+  const built = treasury.map((v, i) => v + Math.sin(i/3) * 0.015);
+  charts.build.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['原始（短端+长端拼接前）', '构建后'], top: 0, textStyle: { fontSize: 11 } },
+    grid: { left: 40, right: 20, top: 35, bottom: 30 },
+    xAxis: { type: 'category', data: tenorData, axisLabel: { fontSize: 10 } },
+    yAxis: { type: 'value', name: '%' },
+    series: [
+      { name: '原始（短端+长端拼接前）', data: treasury, type: 'line', smooth: true, itemStyle: { color: '#8c8c8c' } },
+      { name: '构建后', data: built, type: 'line', smooth: true, lineStyle: { width: 3 }, itemStyle: { color: '#722ed1' } },
+    ]
+  });
+
+  // 5. Trend 时序
+  if (!charts.trend) charts.trend = echarts.init(document.getElementById('chart-trend'));
+  const tradeDates = Array.from({length: 250}, (_, i) => {
+    const d = new Date('2025-08-17'); d.setDate(d.getDate() + i);
+    return `${d.getMonth()+1}/${d.getDate()}`;
+  });
+  const trendData = tradeDates.map((_, i) => {
+    const base = 2.30 + Math.sin(i/30) * 0.20 + (i/250) * 0.15;
+    return (base + (Math.random()-0.5)*0.04).toFixed(3);
+  });
+  charts.trend.setOption({
+    tooltip: { trigger: 'axis' },
+    grid: { left: 50, right: 30, top: 30, bottom: 60 },
+    xAxis: { type: 'category', data: tradeDates, axisLabel: { fontSize: 9, interval: 24 } },
+    yAxis: { type: 'value', name: '%', scale: true },
+    dataZoom: [{ type: 'inside' }, { type: 'slider', height: 18, bottom: 20 }],
+    series: [{ name: '10Y 国债', data: trendData, type: 'line', smooth: true, showSymbol: false, lineStyle: { width: 1.5 }, itemStyle: { color: '#722ed1' } }]
+  });
+
+  // 6. Shape spread
+  if (!charts.shapeSpread) charts.shapeSpread = echarts.init(document.getElementById('chart-shape-spread'));
+  const spreadData = tradeDates.map((_, i) => (60 + Math.sin(i/20) * 15 + (Math.random()-0.5)*5).toFixed(1));
+  charts.shapeSpread.setOption({
+    tooltip: { trigger: 'axis' },
+    grid: { left: 40, right: 20, top: 20, bottom: 50 },
+    xAxis: { type: 'category', data: tradeDates, axisLabel: { fontSize: 9, interval: 24 } },
+    yAxis: { type: 'value', name: 'bp' },
+    dataZoom: [{ type: 'slider', height: 16, bottom: 10 }],
+    series: [{ name: '10Y-1Y 利差', data: spreadData, type: 'line', smooth: true, showSymbol: false, lineStyle: { width: 1.5 }, itemStyle: { color: '#1677ff' } }]
+  });
+
+  // 7. Shape 3D
+  if (!charts.shape3d) charts.shape3d = echarts.init(document.getElementById('chart-shape-3d'));
+  const days3d = Array.from({length: 30}, (_, i) => `D${i+1}`);
+  const tenor3d = tenorData;
+  const data3d = [];
+  for (let d = 0; d < days3d.length; d++) {
+    for (let t = 0; t < tenor3d.length; t++) {
+      data3d.push([t, d, (treasury[t] + Math.sin(d/3)*0.05).toFixed(3)]);
+    }
+  }
+  charts.shape3d.setOption({
+    tooltip: {},
+    visualMap: { min: 1.4, max: 2.8, calculable: true, orient: 'horizontal', left: 'center', bottom: 0, inRange: { color: ['#1677ff', '#722ed1', '#ff4d4f'] }, textStyle: { fontSize: 10 } },
+    xAxis3D: { type: 'category', data: tenor3d, name: '期限', nameTextStyle: { fontSize: 10 } },
+    yAxis3D: { type: 'category', data: days3d, name: '日期', nameTextStyle: { fontSize: 10 } },
+    zAxis3D: { type: 'value', name: '利率(%)', nameTextStyle: { fontSize: 10 } },
+    grid3D: { boxWidth: 100, boxDepth: 80, viewControl: { projection: 'orthographic' } },
+    series: [{ type: 'surface', data: data3d, shading: 'color' }]
+  });
+
+  // 8. KRD
+  if (!charts.krd) charts.krd = echarts.init(document.getElementById('chart-krd'));
+  const krdTenors = ['3M','1Y','3Y','5Y','10Y','30Y'];
+  charts.krd.setOption({
+    tooltip: {},
+    grid: { left: 40, right: 20, top: 20, bottom: 40 },
+    xAxis: { type: 'category', data: krdTenors },
+    yAxis: { type: 'value', name: 'KRD（年）' },
+    series: [{ name: 'KRD', data: [0.05, 0.18, 0.42, 1.25, 3.85, 1.50], type: 'bar', itemStyle: { color: '#722ed1' } }]
+  });
+
+  // 9. Scenario
+  if (!charts.scenario) charts.scenario = echarts.init(document.getElementById('chart-scenario'));
+  const currentC = treasury;
+  const shockedC = treasury.map(v => v + 1.0);
+  charts.scenario.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['当前曲线', '+100bp 后'], top: 0, textStyle: { fontSize: 11 } },
+    grid: { left: 40, right: 20, top: 35, bottom: 30 },
+    xAxis: { type: 'category', data: tenorData, axisLabel: { fontSize: 10 } },
+    yAxis: { type: 'value', name: '%' },
+    series: [
+      { name: '当前曲线', data: currentC, type: 'line', smooth: true, itemStyle: { color: '#1677ff' } },
+      { name: '+100bp 后', data: shockedC, type: 'line', smooth: true, itemStyle: { color: '#ff4d4f' } },
+    ]
+  });
+
+  // 10. Valuation
+  if (!charts.valuation) charts.valuation = echarts.init(document.getElementById('chart-valuation'));
+  charts.valuation.setOption({
+    tooltip: { trigger: 'axis' },
+    grid: { left: 40, right: 20, top: 20, bottom: 30 },
+    xAxis: { type: 'category', data: tenorData, axisLabel: { fontSize: 10 } },
+    yAxis: { type: 'value', name: '%' },
+    series: [{ name: '中债国债', data: treasury, type: 'line', smooth: true, areaStyle: { opacity: 0.3 }, itemStyle: { color: '#722ed1' } }]
+  });
+
+  // 11. Chat 1
+  if (!charts.chat1) charts.chat1 = echarts.init(document.getElementById('chart-chat-1'));
+  charts.chat1.setOption({
+    tooltip: { trigger: 'axis' },
+    grid: { left: 35, right: 10, top: 10, bottom: 25 },
+    xAxis: { type: 'category', data: tradeDates.filter((_,i)=>i%5===0), axisLabel: { fontSize: 9 } },
+    yAxis: { type: 'value' },
+    series: [{ name: '10Y', data: trendData.filter((_,i)=>i%5===0), type: 'line', smooth: true, showSymbol: false, itemStyle: { color: '#722ed1' } }]
+  });
+
+  // 12. Chat 2
+  if (!charts.chat2) charts.chat2 = echarts.init(document.getElementById('chart-chat-2'));
+  const krdChartTenors = ['3M','1Y','3Y','5Y','10Y','30Y'];
+  charts.chat2.setOption({
+    tooltip: {},
+    grid: { left: 35, right: 10, top: 10, bottom: 25 },
+    xAxis: { type: 'category', data: krdChartTenors, axisLabel: { fontSize: 9 } },
+    yAxis: { type: 'value', name: 'KRD' },
+    series: [{ name: 'KRD', data: [0.05, 0.18, 0.42, 1.25, 3.85, 1.50], type: 'bar', itemStyle: { color: '#722ed1' } }]
+  });
+}
+
+renderCharts();
+window.addEventListener('resize', () => {
+  Object.values(charts).forEach(c => c && c.resize());
+});
+</script>
+</body>
+</html>
