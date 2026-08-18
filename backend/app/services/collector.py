@@ -138,6 +138,157 @@ COLLECTION_RULES: Dict[str, dict] = {
         "base_curve_a": "cnb_policy_fin",
         "base_curve_b": "cnb_treasury_yield",
     },
+    # ===========================================================
+    # 新增：中债登全系（基于 xlsx 曲线清单）
+    # ===========================================================
+    "cnb_local_gov": {
+        "frequency": "daily",
+        "category": "base",
+        "base_tenor": "10Y",
+        "current_value": 2.50,
+        "spread_to_treasury_bp": 5,  # 地方政府债与国债接近
+        "volatility_bp": 3.0,
+        "year_trend_bp": -35,
+        "term_structure_slope": 0.07,
+    },
+    "cnb_commercial_bank": {
+        "frequency": "daily",
+        "category": "credit",
+        "base_tenor": "10Y",
+        "current_value": 2.78,
+        "spread_to_treasury_bp": 33,
+        "volatility_bp": 4.0,
+        "year_trend_bp": -40,
+        "term_structure_slope": 0.08,
+    },
+    "cnb_short_term_note": {
+        "frequency": "daily",
+        "category": "credit",
+        "base_tenor": "1Y",
+        "current_value": 2.95,
+        "spread_to_treasury_bp": 50,
+        "volatility_bp": 5.0,
+        "year_trend_bp": -45,
+        "term_structure_slope": 0.08,
+    },
+    # ===========================================================
+    # 新增：CFETS 利率互换曲线
+    # ===========================================================
+    "cfets_swap_fr007": {
+        "frequency": "daily",
+        "category": "swap",
+        "base_tenor": "5Y",
+        "current_value": 1.85,
+        "volatility_bp": 1.5,
+        "year_trend_bp": -25,
+        "term_structure_slope": 0.05,
+    },
+    "cfets_swap_fdr007": {
+        "frequency": "daily",
+        "category": "swap",
+        "base_tenor": "5Y",
+        "current_value": 1.80,
+        "spread_to_fr007_bp": -5,  # 比 FR007 略低
+        "volatility_bp": 1.5,
+        "year_trend_bp": -25,
+        "term_structure_slope": 0.05,
+    },
+    "cfets_swap_shibor3m": {
+        "frequency": "daily",
+        "category": "swap",
+        "base_tenor": "5Y",
+        "current_value": 2.10,
+        "spread_to_fr007_bp": 25,
+        "volatility_bp": 2.0,
+        "year_trend_bp": -30,
+        "term_structure_slope": 0.06,
+    },
+    "cfets_swap_lpr": {
+        "frequency": "monthly",
+        "month_day": 20,
+        "category": "swap",
+        "base_tenor": "5Y",
+        "current_value": 3.10,
+        "volatility_bp": 1.0,
+        "year_trend_bp": -50,
+        "term_structure_slope": 0.10,
+    },
+    # ===========================================================
+    # 新增：上海清算所
+    # ===========================================================
+    "shch_short_term": {
+        "frequency": "daily",
+        "category": "credit",
+        "base_tenor": "1Y",
+        "current_value": 2.85,
+        "spread_to_treasury_bp": 40,
+        "volatility_bp": 4.0,
+        "year_trend_bp": -40,
+        "term_structure_slope": 0.07,
+    },
+    # ===========================================================
+    # 新增：境外外币曲线
+    # ===========================================================
+    "sofr_usd": {
+        "frequency": "daily",
+        "category": "fx",
+        "currency": "USD",
+        "base_tenor": "5Y",
+        "current_value": 4.30,
+        "volatility_bp": 4.0,
+        "year_trend_bp": -50,
+        "term_structure_slope": 0.04,
+    },
+    "estr_eur": {
+        "frequency": "daily",
+        "category": "fx",
+        "currency": "EUR",
+        "base_tenor": "5Y",
+        "current_value": 3.40,
+        "volatility_bp": 3.0,
+        "year_trend_bp": -60,
+        "term_structure_slope": 0.03,
+    },
+    "sonia_gbp": {
+        "frequency": "daily",
+        "category": "fx",
+        "currency": "GBP",
+        "base_tenor": "5Y",
+        "current_value": 4.70,
+        "volatility_bp": 3.5,
+        "year_trend_bp": -45,
+        "term_structure_slope": 0.04,
+    },
+    "saron_chf": {
+        "frequency": "daily",
+        "category": "fx",
+        "currency": "CHF",
+        "base_tenor": "5Y",
+        "current_value": 1.20,
+        "volatility_bp": 2.0,
+        "year_trend_bp": -20,
+        "term_structure_slope": 0.02,
+    },
+    "tonar_jpy": {
+        "frequency": "daily",
+        "category": "fx",
+        "currency": "JPY",
+        "base_tenor": "5Y",
+        "current_value": 0.55,
+        "volatility_bp": 1.0,
+        "year_trend_bp": 5,  # 日元微升
+        "term_structure_slope": 0.02,
+    },
+    "sora_sgd": {
+        "frequency": "daily",
+        "category": "fx",
+        "currency": "SGD",
+        "base_tenor": "5Y",
+        "current_value": 2.90,
+        "volatility_bp": 2.5,
+        "year_trend_bp": -30,
+        "term_structure_slope": 0.03,
+    },
 }
 
 
@@ -363,13 +514,14 @@ class CollectorService:
         self, curve_code: str, dates: List[date], points: List,
         source_code: str, operator: str, rule: dict,
     ) -> int:
-        """采集基础曲线（国债/国开/信用/Shibor/Repo/NCD/LPR）"""
+        """采集基础曲线（国债/国开/信用/Shibor/Repo/NCD/LPR/互换/外币）"""
         base_tenor = rule.get("base_tenor", "10Y")
         current_value = rule.get("current_value", 2.0)
         volatility = rule.get("volatility_bp", 2.0)
         year_trend = rule.get("year_trend_bp", 0)
         spread_to_treasury = rule.get("spread_to_treasury_bp", 0)
         spread_to_shibor = rule.get("spread_to_shibor_bp", 0)
+        spread_to_fr007 = rule.get("spread_to_fr007_bp", 0)  # 互换曲线用
         slope = rule.get("term_structure_slope", 0)
 
         # 生成基础期限的随机游走序列
@@ -409,7 +561,7 @@ class CollectorService:
                 local_rng = random.Random(local_seed)
                 local_shock = local_rng.gauss(0, volatility * 0.4 / 100)
 
-                value = base_val + spread_to_treasury / 100 + spread_to_shibor / 100 + local_shock
+                value = base_val + spread_to_treasury / 100 + spread_to_shibor / 100 + spread_to_fr007 / 100 + local_shock
 
                 # LPR 阶梯式（不在波动日变动）
                 if rule["frequency"] == "monthly" and i > 0:
