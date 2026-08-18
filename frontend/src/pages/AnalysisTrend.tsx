@@ -25,12 +25,14 @@ export default function AnalysisTrend() {
       try {
         const r: any = await curvesApi.listDefinitions()
         const list: any[] = (r?.data || r || []) as any[]
-        // 后端已过滤 is_deleted=0，只需 is_enabled 即可
         const active = list.filter((c: any) => c.is_enabled !== 0)
         setCurves(active)
         if (active.length) {
-          form.setFieldValue('curve_code', active[0].code)
-          await onCurveChange(active[0].code)
+          // 默认选中 中债国债收益率曲线，不存在则取第一条
+          const defaultCode = active.find((c: any) => c.code === 'cnb_treasury_yield')?.code
+            || active[0].code
+          form.setFieldValue('curve_code', defaultCode)
+          await onCurveChange(defaultCode)
         }
       } catch (e) {
         console.error('加载曲线列表失败', e)
