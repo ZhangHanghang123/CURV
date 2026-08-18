@@ -149,29 +149,47 @@ def overview(db: Session = Depends(get_db), user: dict = Depends(get_current_use
     # ────────── 多曲线快照（最新一天的关键期限） ──────────
     snapshot_curves = []
     if latest_date:
-        key_curve_codes = ["cnb_treasury_yield", "cndb_policy_financial", "cnb_corp_aaa_3y"]
+        # 动态取数据量最大的 3 条曲线（最新一天）
+        top_curve_rows = (
+            db.query(
+                CurvRateData.curve_code,
+                func.count(CurvRateData.id).label("cnt"),
+            )
+            .filter(
+                CurvRateData.trade_date == latest_date,
+                CurvRateData.source_version == "official",
+                CurvRateData.data_status == "active",
+            )
+            .group_by(CurvRateData.curve_code)
+            .order_by(func.count(CurvRateData.id).desc())
+            .limit(3)
+            .all()
+        )
+        top_curve_codes = [r.curve_code for r in top_curve_rows]
         rows = (
             db.query(CurvRateData.curve_code, CurvRateData.tenor, CurvRateData.rate_value)
             .filter(
-                CurvRateData.curve_code.in_(key_curve_codes),
+                CurvRateData.curve_code.in_(top_curve_codes),
                 CurvRateData.tenor.in_(["1Y", "3Y", "5Y", "10Y"]),
                 CurvRateData.source_version == "official",
                 CurvRateData.trade_date == latest_date,
             )
             .all()
         )
-        # 按 curve_code 分组
         snap: dict = {}
         for r in rows:
             snap.setdefault(r.curve_code, {})[r.tenor] = round(float(r.rate_value), 4)
-        curve_name_map = {
-            "cnb_treasury_yield": "国债",
-            "cndb_policy_financial": "国开",
-            "cnb_corp_aaa_3y": "AAA企业债",
-        }
-        for code, name in curve_name_map.items():
+        name_rows = (
+            db.query(CurvCurveDefinition.code, CurvCurveDefinition.name)
+            .filter(CurvCurveDefinition.code.in_(top_curve_codes))
+            .all()
+        )
+        curve_name_map = {r.code: r.name for r in name_rows}
+        for code in top_curve_codes:
             if code in snap and snap[code]:
-                snapshot_curves.append({"name": name, "code": code, "rates": snap[code]})
+                name = curve_name_map.get(code, code)
+                short_name = name.replace("中债", "").replace("收益率", "").replace("(合成)", "").strip()
+                snapshot_curves.append({"name": short_name or code, "code": code, "rates": snap[code]})
 
     # ────────── 曲线分类分布 ──────────
     category_rows = (
