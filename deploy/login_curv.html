@@ -9,23 +9,23 @@
     font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
     min-height: 100vh;
     background:
-      radial-gradient(circle at 0% 0%, #f3eaf7 0%, transparent 50%),
-      radial-gradient(circle at 100% 100%, #e9dcf3 0%, transparent 50%),
-      linear-gradient(135deg, #faf2fc 0%, #ecdef4 100%);
+      radial-gradient(circle at 0% 0%, #fef7e6 0%, transparent 50%),
+      radial-gradient(circle at 100% 100%, #f4ecdf 0%, transparent 50%),
+      linear-gradient(135deg, #faf5ea 0%, #f0e6d2 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
     position: relative;
   }
-  /* 古铜紫色底纹 */
+  /* 古铜色底纹 */
   body::before {
     content: "";
     position: absolute;
     inset: 0;
     background-image:
-      repeating-linear-gradient(45deg, transparent 0 40px, rgba(107, 76, 138, 0.05) 40px 41px),
-      repeating-linear-gradient(-45deg, transparent 0 40px, rgba(107, 76, 138, 0.05) 40px 41px);
+      repeating-linear-gradient(45deg, transparent 0 40px, rgba(184, 134, 51, 0.04) 40px 41px),
+      repeating-linear-gradient(-45deg, transparent 0 40px, rgba(184, 134, 51, 0.04) 40px 41px);
     pointer-events: none;
   }
   .card {
@@ -34,9 +34,9 @@
     padding: 48px 56px 40px;
     border-radius: 4px;
     box-shadow:
-      0 1px 0 rgba(107, 76, 138, 0.4) inset,
-      0 0 0 1px rgba(107, 76, 138, 0.2),
-      0 20px 60px rgba(74, 51, 96, 0.15);
+      0 1px 0 rgba(184, 134, 51, 0.4) inset,
+      0 0 0 1px rgba(184, 134, 51, 0.2),
+      0 20px 60px rgba(112, 80, 30, 0.15);
     position: relative;
     z-index: 1;
   }
@@ -44,7 +44,7 @@
     content: "";
     position: absolute;
     top: 8px; left: 8px; right: 8px; bottom: 8px;
-    border: 1px solid rgba(107, 76, 138, 0.35);
+    border: 1px solid rgba(184, 134, 51, 0.35);
     border-radius: 2px;
     pointer-events: none;
   }
@@ -58,18 +58,18 @@
     height: 96px;
     display: block;
     margin: 0 auto 16px;
-    filter: drop-shadow(0 4px 12px rgba(74, 51, 96, 0.3));
+    filter: drop-shadow(0 4px 12px rgba(184, 134, 51, 0.3));
   }
   .seal-frame h1 {
     font-size: 22px;
     font-weight: 600;
-    color: #4a3360;
+    color: #5c4019;
     letter-spacing: 4px;
     margin-bottom: 4px;
   }
   .seal-frame .subtitle {
     font-size: 11px;
-    color: #7e6294;
+    color: #a8843e;
     letter-spacing: 6px;
     text-transform: uppercase;
   }
@@ -77,7 +77,7 @@
     display: flex;
     align-items: center;
     margin: 24px 0;
-    color: #7e6294;
+    color: #c4a973;
     font-size: 12px;
     letter-spacing: 2px;
   }
@@ -85,7 +85,7 @@
     content: "";
     flex: 1;
     height: 1px;
-    background: linear-gradient(to right, transparent, #b39bc7, transparent);
+    background: linear-gradient(to right, transparent, #c4a973, transparent);
   }
   .divider::before { margin-right: 12px; }
   .divider::after { margin-left: 12px; }
@@ -93,7 +93,7 @@
   .label {
     display: block;
     font-size: 12px;
-    color: #5d4477;
+    color: #6b4e1f;
     margin-bottom: 6px;
     letter-spacing: 2px;
   }
@@ -103,50 +103,50 @@
   .input-wrap input {
     width: 100%;
     padding: 12px 14px 12px 42px;
-    border: 1px solid #c8b6d9;
-    background: #faf3fc;
+    border: 1px solid #d8c79a;
+    background: #fdf8ed;
     border-radius: 2px;
     font-size: 14px;
-    color: #2c1e3a;
+    color: #3d2c10;
     transition: all 0.2s;
   }
   .input-wrap input:focus {
     outline: none;
-    border-color: #6b4c8a;
+    border-color: #b88633;
     background: #fff;
-    box-shadow: 0 0 0 3px rgba(107, 76, 138, 0.1);
+    box-shadow: 0 0 0 3px rgba(184, 134, 51, 0.1);
   }
   .input-wrap .icon {
     position: absolute;
     left: 14px;
     top: 50%;
     transform: translateY(-50%);
-    color: #6b4c8a;
+    color: #b88633;
     font-size: 16px;
   }
   .btn {
     width: 100%;
     padding: 13px;
     margin-top: 8px;
-    background: linear-gradient(135deg, #6b4c8a 0%, #4a3360 100%);
+    background: linear-gradient(135deg, #b88633 0%, #8c6620 100%);
     color: #fff;
     border: none;
     border-radius: 2px;
     font-size: 15px;
     letter-spacing: 8px;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(107, 76, 138, 0.3);
+    box-shadow: 0 4px 12px rgba(184, 134, 51, 0.3);
     transition: all 0.2s;
   }
   .btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(107, 76, 138, 0.45);
+    box-shadow: 0 6px 16px rgba(184, 134, 51, 0.45);
   }
   .hint {
     text-align: center;
     margin-top: 18px;
     font-size: 12px;
-    color: #7e6294;
+    color: #a8843e;
     letter-spacing: 1px;
   }
   .seal-mark {
@@ -155,7 +155,7 @@
     right: 30px;
     width: 64px;
     height: 64px;
-    background: linear-gradient(135deg, #6b4c8a 0%, #4a3360 100%);
+    background: linear-gradient(135deg, #b88633 0%, #8c6620 100%);
     color: #fff;
     display: flex;
     align-items: center;
@@ -164,7 +164,7 @@
     letter-spacing: 1px;
     border-radius: 2px;
     transform: rotate(-8deg);
-    box-shadow: 0 4px 12px rgba(107, 76, 138, 0.4);
+    box-shadow: 0 4px 12px rgba(184, 134, 51, 0.4);
     font-weight: 600;
     z-index: 2;
   }
@@ -179,7 +179,7 @@
     position: absolute;
     width: 20px;
     height: 20px;
-    border: 2px solid #6b4c8a;
+    border: 2px solid #b88633;
   }
   .corner.tl { top: 20px; left: 20px; border-right: none; border-bottom: none; }
   .corner.tr { top: 20px; right: 20px; border-left: none; border-bottom: none; }
