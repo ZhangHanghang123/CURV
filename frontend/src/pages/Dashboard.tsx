@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Row, Col, Card, Statistic, Table, Spin, Tag, Progress, Space, Typography } from 'antd'
+import { Row, Col, Card, Statistic, Table, Spin, Tag, Progress, Space, Typography, Tooltip } from 'antd'
 import {
   LineChartOutlined, DatabaseOutlined, FileTextOutlined, CheckCircleOutlined,
   RiseOutlined, FallOutlined, ApiOutlined,
@@ -66,21 +66,34 @@ function MiniBarChart({ data, height = 120, color = '#1677ff', unit = '%' }: {
   const max = Math.max(...data.map(d => d.value), 0.01)
   const min = Math.min(...data.map(d => d.value), 0)
   const range = max - min || 1
+  // 间隔显示 x 轴日期，避免 30 天密集时日期标签重叠（保留首个和最后一个）
+  const step = Math.max(1, Math.ceil(data.length / 7))
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, height, paddingTop: 12, justifyContent: 'center' }}>
-      {data.map((item) => (
-        <div key={item.period} style={{ textAlign: 'center', flex: 1 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color, marginBottom: 4 }}>{item.value}{unit}</div>
-          <div style={{
-            height: Math.max(4, ((item.value - min) / range) * (height - 40)),
-            minWidth: 16,
-            background: `linear-gradient(180deg, ${color}, ${color}66)`,
-            borderRadius: '4px 4px 0 0',
-            margin: '0 auto',
-          }} />
-          <div style={{ marginTop: 4, fontSize: 10, color: '#8c8c8c' }}>{item.period}</div>
-        </div>
-      ))}
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height, paddingTop: 24, justifyContent: 'center', position: 'relative' }}>
+      {data.map((item, idx) => {
+        const showLabel = idx === 0 || idx === data.length - 1 || idx % step === 0
+        return (
+          <div key={item.period} style={{ textAlign: 'center', flex: 1, minWidth: 8, position: 'relative' }}>
+            <Tooltip title={`${item.value}${unit}`}>
+              <div style={{
+                height: Math.max(4, ((item.value - min) / range) * (height - 50)),
+                minWidth: 4,
+                background: `linear-gradient(180deg, ${color}, ${color}66)`,
+                borderRadius: '3px 3px 0 0',
+                margin: '0 auto',
+                cursor: 'pointer',
+              }} />
+            </Tooltip>
+            <div style={{
+              marginTop: 4,
+              fontSize: 10,
+              color: '#8c8c8c',
+              whiteSpace: 'nowrap',
+              visibility: showLabel ? 'visible' : 'hidden',
+            }}>{item.period}</div>
+          </div>
+        )
+      })}
     </div>
   )
 }
