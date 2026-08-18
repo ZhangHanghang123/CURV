@@ -277,7 +277,7 @@ CURVE_DEFINITIONS = [
     {
         "code": "riskfree_full",
         "name": "无风险收益率曲线（合成）",
-        "category": "derived", "currency": "CNY",
+        "category": "base", "currency": "CNY",
         "tenor_set": "cnb",
         "rate_type_code": "synthetic", "compound_code": "compound", "day_count_code": "ACT/365",
         "description": "合成的无风险收益率曲线，用于 FTP 定价底层",
