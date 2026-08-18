@@ -132,10 +132,15 @@ export default function Dashboard() {
     setLoading(true)
     try {
       const res: any = await dashboardApi.getOverview()
-      setData(res || {})
+      // 兼容 axios 拦截器已解包/未解包两种情况
+      const payload = res?.data?.kpi ? res.data : res
+      console.log('[Dashboard] raw response keys:', Object.keys(res || {}))
+      console.log('[Dashboard] payload keys:', Object.keys(payload || {}))
+      console.log('[Dashboard] payload.kpi:', payload?.kpi)
+      setData(payload || {})
       setRefreshTime(new Date().toLocaleTimeString('zh-CN'))
     } catch (e) {
-      console.error(e)
+      console.error('[Dashboard] API error:', e)
     } finally {
       setLoading(false)
     }
