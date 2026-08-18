@@ -1,0 +1,124 @@
+"""重写 nginx sites-enabled/almd：ALMD/IALMD/ALMT/CURV 全部 location"""
+import sys
+
+NGINX = '''server {
+    listen 80 default_server;
+    server_name _;
+    client_max_body_size 100M;
+
+    root /var/www;
+
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml text/javascript;
+
+    # 设计预览
+    location ^~ /design/ {
+        alias /var/www/portal/;
+        try_files $uri $uri/ =404;
+    }
+
+    # 门户导航首页
+    location = / {
+        root /var/www/portal;
+        index index.html;
+    }
+    location = /index.html {
+        root /var/www/portal;
+    }
+
+    # ===== ALMD 银行经营分析平台 =====
+    location /almd/assets/ {
+        root /var/www;
+        expires 1h;
+    }
+    location /almd/ {
+        root /var/www;
+        try_files $uri $uri/ /almd/index.html;
+    }
+    location /almd/api/ {
+        proxy_pass http://127.0.0.1:8000/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 120s;
+        proxy_read_timeout 120s;
+        proxy_buffering off;
+    }
+    location /almd/reports-files/ {
+        alias /opt/almd/reports/;
+        internal;
+    }
+
+    # ===== IALMD 保险经营分析平台 =====
+    location /ialmd/assets/ {
+        root /var/www;
+        expires 1h;
+    }
+    location /ialmd/ {
+        root /var/www;
+        try_files $uri $uri/ /ialmd/index.html;
+    }
+    location /ialmd/api/ {
+        proxy_pass http://127.0.0.1:8002/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 120s;
+        proxy_read_timeout 120s;
+        proxy_buffering off;
+    }
+
+    # ===== ALMT 经营计划模拟系统 =====
+    location /almt/assets/ {
+        root /var/www;
+        expires 1h;
+    }
+    location /almt/ {
+        root /var/www;
+        try_files $uri $uri/ /almt/index.html;
+    }
+    location /almt/api/ {
+        proxy_pass http://127.0.0.1:8001/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 120s;
+        proxy_read_timeout 120s;
+        proxy_buffering off;
+    }
+
+    # ===== CURV 收益率曲线管理与建模分析平台 =====
+    location /curv/assets/ {
+        root /var/www;
+        expires 1h;
+    }
+    location /curv/ {
+        root /var/www;
+        try_files $uri $uri/ /curv/index.html;
+    }
+    location /curv/api/ {
+        proxy_pass http://127.0.0.1:8003/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 120s;
+        proxy_read_timeout 120s;
+        proxy_buffering off;
+    }
+}
+'''
+with open('/tmp/nginx_new.conf', 'w') as f:
+    f.write(NGINX)
+print('written /tmp/nginx_new.conf, len:', len(NGINX))
