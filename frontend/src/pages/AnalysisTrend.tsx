@@ -25,7 +25,8 @@ export default function AnalysisTrend() {
       try {
         const r: any = await curvesApi.listDefinitions()
         const list: any[] = (r?.data || r || []) as any[]
-        const active = list.filter((c: any) => c.status === 1 && !c.is_deleted)
+        // 后端已过滤 is_deleted=0，只需 is_enabled 即可
+        const active = list.filter((c: any) => c.is_enabled !== 0)
         setCurves(active)
         if (active.length) {
           form.setFieldValue('curve_code', active[0].code)
@@ -42,9 +43,13 @@ export default function AnalysisTrend() {
     try {
       const r: any = await curvesApi.getDefinition(code)
       const def = r?.data || r
-      const tenors: string[] = def?.tenor_set || def?.points?.map((p: any) => p.tenor) || []
-      const sorted = tenors.sort((a: string, b: string) => {
-        // 按到期天数排序
+      // tenor_set 可能是 JSON 字符串，需要 parse
+      let rawTenors = def?.tenor_set
+      if (typeof rawTenors === 'string') {
+        try { rawTenors = JSON.parse(rawTenors) } catch { rawTenors = [] }
+      }
+      const tenors: string[] = Array.isArray(rawTenors) ? rawTenors : []
+      const sorted = [...tenors].sort((a: string, b: string) => {
         const days = (s: string) => {
           const n = parseFloat(s)
           if (s.endsWith('Y')) return n * 365
@@ -56,7 +61,6 @@ export default function AnalysisTrend() {
         return days(a) - days(b)
       })
       setCurveTenors(sorted)
-      // 默认选 10Y
       const defaultTenor = sorted.includes('10Y') ? '10Y' : sorted[sorted.length - 1] || ''
       form.setFieldsValue({ tenor: defaultTenor })
     } catch (e) {
@@ -86,7 +90,7 @@ export default function AnalysisTrend() {
   const curveOptions = useMemo(() => {
     const groups: Record<string, any[]> = {}
     curves.forEach(c => {
-      const cat = c.curve_category || 'base'
+      const cat = c.category || 'base'
       if (!groups[cat]) groups[cat] = []
       groups[cat].push({ value: c.code, label: c.name })
     })
