@@ -247,6 +247,7 @@ def overview(db: Session = Depends(get_db), user: dict = Depends(get_current_use
         rows = (
             db.query(
                 CurvCurveDefinition.code, CurvCurveDefinition.name,
+                CurvCurveDefinition.curve_category,
                 CurvRateData.rate_value,
             )
             .join(CurvRateData, CurvRateData.curve_code == CurvCurveDefinition.code)
@@ -262,11 +263,15 @@ def overview(db: Session = Depends(get_db), user: dict = Depends(get_current_use
             .all()
         )
         for i, r in enumerate(rows, 1):
+            # 派生曲线（信用利差/流动性利差）单位是 bp，其他利率类曲线单位是 %
+            unit = "bp" if r.curve_category == "derived" else "%"
             top_rates.append({
                 "rank": i,
                 "curve_code": r.code,
                 "curve_name": r.name,
                 "value": round(float(r.rate_value), 4),
+                "unit": unit,
+                "category": r.curve_category,
             })
 
     # ────────── 采集状态汇总 ──────────

@@ -305,7 +305,7 @@ export default function Dashboard() {
                       </span>
                       <Text style={{ fontSize: 13 }}>{item.curve_name}</Text>
                     </Space>
-                    <Text strong style={{ color: '#722ed1', fontSize: 14 }}>{item.value}%</Text>
+                    <Text strong style={{ color: '#722ed1', fontSize: 14 }}>{item.value}{item.unit || '%'}</Text>
                   </div>
                 ))}
               </div>
