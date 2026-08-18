@@ -1,12 +1,69 @@
-import { useState } from 'react'
-import { Card, Form, Select, InputNumber, Button, Statistic, Row, Col, message } from 'antd'
-import { analysisApi } from '../api'
+import { useEffect, useState, useMemo } from 'react'
+import { Card, Form, Select, InputNumber, Button, Statistic, Row, Col, message, Tag } from 'antd'
+import { analysisApi, curvesApi } from '../api'
 import ReactECharts from 'echarts-for-react'
+
+const CATEGORY_LABEL: Record<string, string> = {
+  base: '基准', credit: '信用', money_market: '货币', policy: '政策',
+  swap: '互换', fx: '外币', derived: '派生',
+}
+const CATEGORY_COLOR: Record<string, string> = {
+  base: '#1677ff', credit: '#fa541c', money_market: '#13c2c2', policy: '#722ed1',
+  swap: '#2f54eb', fx: '#eb2f96', derived: '#52c41a',
+}
 
 export default function AnalysisTrend() {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<any>(null)
+  const [curves, setCurves] = useState<any[]>([])
+  const [curveTenors, setCurveTenors] = useState<string[]>([])
+
+  // 加载所有曲线
+  useEffect(() => {
+    (async () => {
+      try {
+        const r: any = await curvesApi.listDefinitions()
+        const list: any[] = (r?.data || r || []) as any[]
+        const active = list.filter((c: any) => c.status === 1 && !c.is_deleted)
+        setCurves(active)
+        if (active.length) {
+          form.setFieldValue('curve_code', active[0].code)
+          await onCurveChange(active[0].code)
+        }
+      } catch (e) {
+        console.error('加载曲线列表失败', e)
+      }
+    })()
+  }, [])
+
+  // 切换曲线时加载该曲线的期限集
+  const onCurveChange = async (code: string) => {
+    try {
+      const r: any = await curvesApi.getDefinition(code)
+      const def = r?.data || r
+      const tenors: string[] = def?.tenor_set || def?.points?.map((p: any) => p.tenor) || []
+      const sorted = tenors.sort((a: string, b: string) => {
+        // 按到期天数排序
+        const days = (s: string) => {
+          const n = parseFloat(s)
+          if (s.endsWith('Y')) return n * 365
+          if (s.endsWith('M')) return n * 30
+          if (s.endsWith('W')) return n * 7
+          if (s.endsWith('D')) return n
+          return n
+        }
+        return days(a) - days(b)
+      })
+      setCurveTenors(sorted)
+      // 默认选 10Y
+      const defaultTenor = sorted.includes('10Y') ? '10Y' : sorted[sorted.length - 1] || ''
+      form.setFieldsValue({ tenor: defaultTenor })
+    } catch (e) {
+      console.error('加载期限集失败', e)
+      setCurveTenors([])
+    }
+  }
 
   const onFinish = async (values: any) => {
     setLoading(true)
@@ -25,6 +82,21 @@ export default function AnalysisTrend() {
     }
   }
 
+  // 曲线选项（按 category 分组）
+  const curveOptions = useMemo(() => {
+    const groups: Record<string, any[]> = {}
+    curves.forEach(c => {
+      const cat = c.curve_category || 'base'
+      if (!groups[cat]) groups[cat] = []
+      groups[cat].push({ value: c.code, label: c.name })
+    })
+    return Object.keys(groups).sort().map(cat => ({
+      label: <span><Tag color={CATEGORY_COLOR[cat]} style={{ marginRight: 4 }}>{CATEGORY_LABEL[cat] || cat}</Tag></span>,
+      title: CATEGORY_LABEL[cat] || cat,
+      options: groups[cat],
+    }))
+  }, [curves])
+
   const option = data ? {
     tooltip: { trigger: 'axis' },
     grid: { left: 50, right: 30, top: 20, bottom: 60 },
@@ -42,24 +114,39 @@ export default function AnalysisTrend() {
       <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>📈 时序走势分析</div>
       <Card>
         <Form form={form} layout="inline" onFinish={onFinish}
-              initialValues={{ curve_code: 'cnb_treasury_yield', tenor: '10Y', days: 365 }}>
+              initialValues={{ days: 365 }}>
           <Form.Item name="curve_code" label="曲线">
-            <Select style={{ width: 180 }} options={[
-              { value: 'cnb_treasury_yield', label: '中债国债' },
-              { value: 'cnb_policy_fin', label: '国开债' },
-              { value: 'shibor_curve', label: 'Shibor' },
-            ]} />
+            <Select
+              style={{ width: 280 }}
+              placeholder="选择曲线（按分类分组）"
+              showSearch
+              optionFilterProp="label"
+              options={curveOptions as any}
+              onChange={(v) => onCurveChange(v as string)}
+              filterOption={(input, option: any) => {
+                const label = option?.label?.props?.children?.[1] || option?.label || ''
+                return String(label).toLowerCase().includes(input.toLowerCase())
+              }}
+            />
           </Form.Item>
           <Form.Item name="tenor" label="期限">
-            <Select style={{ width: 120 }} options={[
-              { value: '1Y', label: '1Y' }, { value: '3Y', label: '3Y' },
-              { value: '5Y', label: '5Y' }, { value: '10Y', label: '10Y' }, { value: '30Y', label: '30Y' },
-            ]} />
+            <Select
+              style={{ width: 120 }}
+              placeholder="选择期限"
+              options={curveTenors.map(t => ({ value: t, label: t }))}
+            />
           </Form.Item>
           <Form.Item name="days" label="天数">
             <InputNumber min={30} max={2000} style={{ width: 100 }} />
           </Form.Item>
-          <Form.Item><Button type="primary" loading={loading} htmlType="submit">查询</Button></Form.Item>
+          <Form.Item>
+            <Button type="primary" loading={loading} htmlType="submit">查询</Button>
+          </Form.Item>
+          <Form.Item>
+            <span style={{ color: '#8c8c8c', fontSize: 12 }}>
+              共 {curves.length} 条曲线可选
+            </span>
+          </Form.Item>
         </Form>
       </Card>
 
