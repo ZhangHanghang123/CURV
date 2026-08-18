@@ -102,6 +102,7 @@ export const analysisApi = {
   trend: (params: any) => api.get('/analysis/trend', { params }),
   spread: (params: any) => api.get('/analysis/spread', { params }),
   shapeMetrics: (params: any) => api.get('/analysis/shape-metrics', { params }),
+  shapeMetricsTrend: (params: any) => api.get('/analysis/shape-metrics-trend', { params }),
   krd: (params: any) => api.get('/analysis/krd', { params }),
 }
 

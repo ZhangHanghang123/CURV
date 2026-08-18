@@ -172,6 +172,85 @@ class AnalyzerService:
             "metrics": metrics,
         }
 
+    def shape_metrics_trend(
+        self,
+        curve_code: str,
+        start_date: date,
+        end_date: date,
+        version: str = "official",
+    ) -> Dict:
+        """形态指标趋势：返回区间内每个交易日的 10Y-1Y/10Y-5Y/5Y-1Y/信用利差/倒挂"""
+        # 一次性取出区间内所有利率数据，按日期分组
+        rows = (
+            self.db.query(
+                CurvRateData.trade_date, CurvRateData.curve_code, CurvRateData.tenor,
+                CurvRateData.rate_value,
+            )
+            .filter(
+                CurvRateData.trade_date >= start_date,
+                CurvRateData.trade_date <= end_date,
+                CurvRateData.curve_code.in_([curve_code, "cnb_corp_aaa"]),
+                CurvRateData.source_version == version,
+                CurvRateData.data_status == "active",
+            )
+            .order_by(CurvRateData.trade_date)
+            .all()
+        )
+        # 按 (date, curve_code, tenor) 索引
+        from collections import defaultdict
+        bucket = defaultdict(dict)
+        for r in rows:
+            bucket[(r.trade_date, r.curve_code)][r.tenor] = float(r.rate_value)
+
+        def spread(d: date, a: str, b: str):
+            d_data = bucket.get((d, curve_code), {})
+            if a in d_data and b in d_data:
+                return round((d_data[a] - d_data[b]) * 100, 2)
+            return None
+
+        def credit_5y(d: date):
+            d_main = bucket.get((d, curve_code), {})
+            d_corp = bucket.get((d, "cnb_corp_aaa"), {})
+            if "5Y" in d_main and "5Y" in d_corp:
+                return round((d_corp["5Y"] - d_main["5Y"]) * 100, 2)
+            return None
+
+        # 收集所有交易日并排序
+        dates_set = sorted({d for (d, _) in bucket.keys()})
+
+        result_dates: List[str] = []
+        series = {
+            "spread_10y_1y": [],
+            "spread_10y_5y": [],
+            "spread_5y_1y": [],
+            "credit_spread_aaa_5y": [],
+            "inversion_flag": [],
+        }
+        for d in dates_set:
+            s10_1 = spread(d, "10Y", "1Y")
+            s10_5 = spread(d, "10Y", "5Y")
+            s5_1 = spread(d, "5Y", "1Y")
+            cs5 = credit_5y(d)
+            inv = None
+            main = bucket.get((d, curve_code), {})
+            if "1Y" in main and "10Y" in main:
+                inv = 1 if main["1Y"] > main["10Y"] else 0
+
+            result_dates.append(d.isoformat())
+            series["spread_10y_1y"].append(s10_1)
+            series["spread_10y_5y"].append(s10_5)
+            series["spread_5y_1y"].append(s5_1)
+            series["credit_spread_aaa_5y"].append(cs5)
+            series["inversion_flag"].append(inv)
+
+        return {
+            "curve_code": curve_code,
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "dates": result_dates,
+            "series": series,
+        }
+
     def krd(
         self,
         curve_code: str,

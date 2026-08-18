@@ -67,10 +67,23 @@ def shape_metrics(
     db: Session = Depends(get_db),
     user: dict = Depends(get_current_user),
 ):
-    """形态指标"""
+    """形态指标（单日快照）"""
     td = trade_date or date.today()
     svc = AnalyzerService(db)
     return ResponseBase(data=svc.shape_metrics(curve_code, td))
+
+
+@router.get("/shape-metrics-trend", response_model=ResponseBase)
+def shape_metrics_trend(
+    curve_code: str,
+    start_date: date,
+    end_date: date,
+    db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user),
+):
+    """形态指标趋势（时间序列）"""
+    svc = AnalyzerService(db)
+    return ResponseBase(data=svc.shape_metrics_trend(curve_code, start_date, end_date))
 
 
 @router.get("/krd", response_model=ResponseBase)
