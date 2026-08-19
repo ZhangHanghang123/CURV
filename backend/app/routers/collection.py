@@ -80,6 +80,32 @@ def collect_history(
         raise HTTPException(status_code=500, detail=f"采集失败：{str(e)}")
 
 
+@router.post("/run-increment", response_model=ResponseBase)
+def run_increment(
+    payload: dict = {},
+    db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user),
+):
+    """增量采集：每条曲线只采集最后 trade_date+1 ~ today
+    payload: {"curve_codes": [...] (可选)}
+    """
+    curve_codes = payload.get("curve_codes")
+    source_code = payload.get("source_code", "auto_collector_inc")
+    try:
+        svc = CollectorService(db)
+        result = svc.collect_increment(
+            curve_codes=curve_codes,
+            source_code=source_code,
+            operator=str(user.get("username", "user")),
+        )
+        return ResponseBase(
+            data=result,
+            message=f"增量采集完成：{result['total_records']} 条记录，耗时 {result['duration_ms']}ms",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"增量采集失败：{str(e)}")
+
+
 @router.get("/logs", response_model=ResponseBase)
 def list_logs(
     limit: int = 20,

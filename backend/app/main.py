@@ -1,9 +1,13 @@
 """CURV 收益率曲线平台 — FastAPI 主入口"""
+from datetime import datetime
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 
 from .config import settings
 from .cache import redis_client
+from .database import SessionLocal
 from .routers import auth, dashboard, curves, rates, build, analysis, scenario, service, agent, dict, collection
 
 
@@ -36,6 +40,46 @@ app.include_router(scenario.router)
 app.include_router(service.router)
 app.include_router(agent.router)
 app.include_router(collection.router)
+
+# ============== 定时调度：每日 18:30 自动增量采集 ==============
+scheduler = BackgroundScheduler(timezone="Asia/Shanghai")
+
+
+def scheduled_daily_collect():
+    """工作日 18:30 增量采集所有曲线"""
+    from .services.collector import CollectorService
+    db = SessionLocal()
+    try:
+        svc = CollectorService(db)
+        result = svc.collect_increment(
+            source_code="auto_collector_inc",
+            operator="scheduler",
+        )
+        print(f"[{datetime.now().isoformat()}] 定时增量采集完成: {result['total_records']} 条, "
+              f"耗时 {result['duration_ms']}ms")
+    except Exception as e:
+        print(f"[{datetime.now().isoformat()}] 定时增量采集失败: {e}")
+    finally:
+        db.close()
+
+
+@app.on_event("startup")
+def start_scheduler():
+    scheduler.add_job(
+        scheduled_daily_collect,
+        CronTrigger(day_of_week="mon-fri", hour=18, minute=30),
+        id="curv_daily_collect",
+        name="CURV 每日增量采集",
+        replace_existing=True,
+        max_instances=1,
+    )
+    scheduler.start()
+    print(f"[{datetime.now().isoformat()}] 定时调度已启动：CURV 工作日 18:30 增量采集")
+
+
+@app.on_event("shutdown")
+def shutdown_scheduler():
+    scheduler.shutdown(wait=False)
 
 
 @app.get("/")

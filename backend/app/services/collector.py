@@ -474,6 +474,107 @@ class CollectorService:
             self.db.commit()
             raise
 
+    def collect_increment(
+        self,
+        curve_codes: List[str] = None,
+        source_code: str = "auto_collector_inc",
+        operator: str = "scheduler",
+    ) -> dict:
+        """
+        增量采集：每条曲线只采集最后已有 trade_date+1 ~ today
+        - 如果曲线数据为空，则采最近 30 天
+        - 如果当天已采集过（last_trade_date == today），跳过
+        """
+        import time
+        from sqlalchemy import func
+
+        t0 = time.time()
+        if curve_codes is None:
+            curve_codes = list(COLLECTION_RULES.keys())
+
+        today = date.today()
+        results = []
+        total = 0
+
+        # 写采集日志
+        task = CurvCollectionTask(
+            source_id=self._get_or_create_source(source_code),
+            task_code=f"inc_collect_{int(time.time())}",
+            task_name=f"增量采集 {today.isoformat()}",
+            schedule_type="auto",
+            params_json={"curves": curve_codes, "source_code": source_code},
+            is_enabled=1,
+            status=1,
+            is_deleted=0,
+            created_by=operator,
+        )
+        self.db.add(task)
+        self.db.flush()
+
+        log = CurvCollectionLog(
+            task_id=task.id,
+            source_id=task.source_id,
+            trade_date=today,
+            start_time=time_now(),
+            status="running",
+            record_count=0,
+        )
+        self.db.add(log)
+        self.db.flush()
+
+        try:
+            for code in curve_codes:
+                # 查该曲线最后已有的 trade_date
+                last_td = self.db.query(func.max(CurvRateData.trade_date)).filter(
+                    CurvRateData.curve_code == code,
+                    CurvRateData.source_version == "official",
+                    CurvRateData.data_status == "active",
+                ).scalar()
+
+                if last_td and last_td >= today:
+                    # 当天已采集过
+                    results.append({"code": code, "last_td": last_td.isoformat(), "skipped": True, "count": 0})
+                    continue
+
+                start = (last_td + timedelta(days=1)) if last_td else (today - timedelta(days=30))
+                if start > today:
+                    continue
+
+                count = self._collect_one_curve(code, start, today, source_code, operator)
+                results.append({
+                    "code": code,
+                    "last_before": last_td.isoformat() if last_td else None,
+                    "start": start.isoformat(),
+                    "end": today.isoformat(),
+                    "count": count,
+                })
+                total += count
+
+            duration = int((time.time() - t0) * 1000)
+            log.end_time = time_now()
+            log.duration_ms = duration
+            log.status = "success"
+            log.record_count = total
+            self.db.commit()
+
+            return {
+                "log_id": log.id,
+                "task_id": task.id,
+                "mode": "increment",
+                "total_records": total,
+                "duration_ms": duration,
+                "curves": results,
+            }
+        except Exception as e:
+            duration = int((time.time() - t0) * 1000)
+            log.end_time = time_now()
+            log.duration_ms = duration
+            log.status = "failed"
+            log.error_code = "INCREMENT_ERROR"
+            log.error_msg = str(e)
+            self.db.commit()
+            raise
+
     def _collect_one_curve(
         self, curve_code: str, start_date: date, end_date: date,
         source_code: str, operator: str,
