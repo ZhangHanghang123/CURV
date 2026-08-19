@@ -1,11 +1,30 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, Form, Select, Input, Button, Table, Tag, Statistic, Row, Col, message } from 'antd'
-import { buildApi } from '../api'
+import { buildApi, curvesApi } from '../api'
 
 export default function BuildFit() {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
+  const [curveOptions, setCurveOptions] = useState<{value: string, label: string}[]>([])
+
+  // 加载曲线列表
+  useEffect(() => {
+    const fetchCurves = async () => {
+      try {
+        const res = await curvesApi.listDefinitions()
+        if (res.data?.code === 0 && Array.isArray(res.data.data)) {
+          setCurveOptions(res.data.data.map((c: any) => ({
+            value: c.code,
+            label: c.name || c.code
+          })))
+        }
+      } catch (e) {
+        console.error('加载曲线列表失败', e)
+      }
+    }
+    fetchCurves()
+  }, [])
 
   const onFinish = async (values: any) => {
     setLoading(true)
@@ -31,12 +50,7 @@ export default function BuildFit() {
         <Form form={form} layout="inline" onFinish={onFinish}
               initialValues={{ curve_code: 'cnb_treasury_yield', trade_date: '2026-08-17', model: 'nelson_siegel' }}>
           <Form.Item name="curve_code" label="曲线">
-            <Select style={{ width: 200 }} options={[
-              { value: 'cnb_treasury_yield', label: '中债国债' },
-              { value: 'cnb_policy_fin', label: '国开债' },
-              { value: 'cnb_corp_aaa', label: '企业债 AAA' },
-              { value: 'shibor_curve', label: 'Shibor' },
-            ]} />
+            <Select style={{ width: 200 }} options={curveOptions} showSearch allowClear placeholder="选择曲线" />
           </Form.Item>
           <Form.Item name="trade_date" label="日期">
             <Input placeholder="YYYY-MM-DD" style={{ width: 150 }} />

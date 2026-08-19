@@ -1,11 +1,30 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, Form, Select, Input, Button, Table, Tag, message } from 'antd'
-import { buildApi } from '../api'
+import { buildApi, curvesApi } from '../api'
 
 export default function BuildInterpolate() {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
+  const [curveOptions, setCurveOptions] = useState<{value: string, label: string}[]>([])
+
+  // 加载曲线列表
+  useEffect(() => {
+    const fetchCurves = async () => {
+      try {
+        const res = await curvesApi.listDefinitions()
+        if (res.data?.code === 0 && Array.isArray(res.data.data)) {
+          setCurveOptions(res.data.data.map((c: any) => ({
+            value: c.code,
+            label: c.name || c.code
+          })))
+        }
+      } catch (e) {
+        console.error('加载曲线列表失败', e)
+      }
+    }
+    fetchCurves()
+  }, [])
 
   const onFinish = async (values: any) => {
     setLoading(true)
@@ -36,11 +55,7 @@ export default function BuildInterpolate() {
               }}>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             <Form.Item name="curve_code" label="曲线" style={{ minWidth: 200 }}>
-              <Select options={[
-                { value: 'cnb_treasury_yield', label: '中债国债' },
-                { value: 'cnb_policy_fin', label: '国开债' },
-                { value: 'cnb_corp_aaa', label: '企业债 AAA' },
-              ]} />
+              <Select options={curveOptions} showSearch allowClear placeholder="选择曲线" />
             </Form.Item>
             <Form.Item name="trade_date" label="日期" style={{ minWidth: 150 }}>
               <Input placeholder="YYYY-MM-DD" />
