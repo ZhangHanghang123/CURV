@@ -19,7 +19,7 @@ export default function AnalysisTrend() {
   const [curves, setCurves] = useState<any[]>([])
   const [curveTenors, setCurveTenors] = useState<string[]>([])
 
-  // 加载所有曲线
+  // 加载所有曲线 + 进入页面自动查询
   useEffect(() => {
     (async () => {
       try {
@@ -33,11 +33,14 @@ export default function AnalysisTrend() {
             || active[0].code
           form.setFieldValue('curve_code', defaultCode)
           await onCurveChange(defaultCode)
+          // 进入页面自动查询（默认曲线 + 默认期限 + 默认天数）
+          await runQuery(form.getFieldsValue())
         }
       } catch (e) {
         console.error('加载曲线列表失败', e)
       }
     })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // 切换曲线时加载该曲线的期限集
@@ -71,7 +74,8 @@ export default function AnalysisTrend() {
     }
   }
 
-  const onFinish = async (values: any) => {
+  // 查询主体（可被自动调用）
+  const runQuery = async (values: any) => {
     setLoading(true)
     try {
       const res: any = await analysisApi.trend({
@@ -80,12 +84,16 @@ export default function AnalysisTrend() {
         days: values.days,
       })
       setData(res.data)
-      message.success('查询完成')
     } catch (e: any) {
       message.error(e.response?.data?.detail || '查询失败')
     } finally {
       setLoading(false)
     }
+  }
+
+  const onFinish = async (values: any) => {
+    await runQuery(values)
+    message.success('查询完成')
   }
 
   // 曲线选项（按 category 分组）

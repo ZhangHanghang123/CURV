@@ -20,7 +20,7 @@ export default function AnalysisSpread() {
   const [trend, setTrend] = useState<any>(null)         // 趋势时间序列
   const [curves, setCurves] = useState<any[]>([])
 
-  // 加载所有曲线
+  // 加载所有曲线 + 进入页面自动查询
   useEffect(() => {
     (async () => {
       try {
@@ -32,14 +32,18 @@ export default function AnalysisSpread() {
         const defaultCode = active.find((c: any) => c.code === 'cnb_treasury_yield')?.code
           || active[0]?.code
         form.setFieldValue('curve_code', defaultCode)
+        // 进入页面自动查询（默认曲线 + 默认日期范围）
+        await runQuery(form.getFieldsValue())
       } catch (e) {
         console.error('加载曲线列表失败', e)
       }
     })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // 提交查询（同时拿单日快照 + 区间趋势）
-  const onFinish = async (values: any) => {
+  // 查询主体（可被自动调用）
+  const runQuery = async (values: any) => {
     setLoading(true)
     try {
       const range = values.range as [Dayjs, Dayjs]
@@ -60,13 +64,16 @@ export default function AnalysisSpread() {
         end_date: endDate,
       })
       setTrend(trendRes.data || trendRes)
-
-      message.success('查询完成')
     } catch (e: any) {
       message.error(e.response?.data?.detail || '查询失败')
     } finally {
       setLoading(false)
     }
+  }
+
+  const onFinish = async (values: any) => {
+    await runQuery(values)
+    message.success('查询完成')
   }
 
   // 曲线选项（按 category 分组）
